@@ -110,3 +110,104 @@ model RiskFlag {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 }
+
+model PriceBar {
+  id           String   @id @default(cuid())
+  instrumentId String
+  timestamp    DateTime
+  open         Decimal
+  high         Decimal
+  low          Decimal
+  close        Decimal
+  volume       Decimal
+  createdAt    DateTime @default(now())
+
+  @@unique([instrumentId, timestamp])
+}
+
+model LedgerEntry {
+  id                 String    @id @default(cuid())
+  userId             String
+  inputSnapshot      Json
+  generatedOutput    Json
+  modelProvider      String
+  modelName          String
+  promptTokens       Int?
+  completionTokens   Int?
+  totalCostUsd       Decimal?
+  status             String    @default("pending")
+  outcome            String?
+  actualData         Json?
+  resolvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+}
+
+model CalibrationScore {
+  id            String   @id @default(cuid())
+  userId        String
+  score         Decimal
+  sampleSize    Int
+  computedAt    DateTime @default(now())
+}
+
+model PromptTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  content   String
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AlertRule {
+  id        String    @id @default(cuid())
+  userId    String
+  config    Json
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  deliveries AlertDelivery[]
+}
+
+model AlertDelivery {
+  id          String    @id @default(cuid())
+  alertRuleId String
+  alertRule   AlertRule @relation(fields: [alertRuleId], references: [id])
+  channel     String
+  status      String
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Subscription {
+  id                String    @id @default(cuid())
+  orgId             String
+  plan              String
+  status            String
+  currentPeriodEnd  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model UsageCounter {
+  id          String   @id @default(cuid())
+  orgId       String
+  metric      String
+  count       Int      @default(0)
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orgId, metric, periodStart])
+}
+
+model FeatureFlag {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  isEnabled Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
