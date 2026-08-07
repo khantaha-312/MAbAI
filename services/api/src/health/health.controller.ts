@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 
 @Controller()
 export class HealthController {
@@ -20,5 +21,11 @@ export class HealthController {
       timestamp: new Date().toISOString(),
       database: databaseStatus,
     };
+  }
+
+  @Get('health/protected')
+  @UseGuards(ClerkAuthGuard)
+  protectedHealth() {
+    return { status: 'ok', message: 'You are authenticated' };
   }
 }
