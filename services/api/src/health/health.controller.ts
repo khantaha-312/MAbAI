@@ -1,7 +1,7 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '@prisma/client';
 
 @Controller()
@@ -27,14 +27,14 @@ export class HealthController {
 
   @Get('health/protected')
   @UseGuards(ClerkAuthGuard)
-  protectedHealth(@Req() request: Request & { user: User }) {
+  protectedHealth(@CurrentUser() user: User) {
     return {
       status: 'ok',
       message: 'You are authenticated',
       user: {
-        id: request.user.id,
-        email: request.user.email,
-        orgId: request.user.orgId,
+        id: user.id,
+        email: user.email,
+        orgId: user.orgId,
       },
     };
   }
