@@ -8,5 +8,6 @@ export class AppException extends HttpException {
     status: HttpStatus = HttpStatus.BAD_REQUEST,
   ) {
     super({ error: { code: errorCode, message } }, status);
+    this.message = message;
   }
 }

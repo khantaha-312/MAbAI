@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
+import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
+import { AppException } from '../shared/exceptions/app.exception';
+import { ErrorCode } from '../shared/errors/error-code';
+import { HttpStatus } from '@nestjs/common';
 import type { Portfolio } from '@prisma/client';
 
 @Injectable()
@@ -22,11 +26,6 @@ export class PortfolioService {
     });
   }
 
-  /**
-   * Returns only non-soft-deleted portfolios owned by this user.
-   * Ownership is enforced at the query level, not just checked after
-   * fetching — a user can never even see another user's portfolio ID exists.
-   */
   async findAllForUser(userId: string): Promise<Portfolio[]> {
     return this.prisma.portfolio.findMany({
       where: {
@@ -34,6 +33,59 @@ export class PortfolioService {
         deletedAt: null,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Fetches a single portfolio and verifies ownership. Throws NOT_FOUND
+   * (not FORBIDDEN) if the portfolio belongs to someone else — this
+   * deliberately avoids confirming to a caller that a given ID exists
+   * at all if they don't own it.
+   */
+  private async findOwnedOrThrow(
+    id: string,
+    userId: string,
+  ): Promise<Portfolio> {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { id },
+    });
+
+    if (!portfolio || portfolio.deletedAt !== null || portfolio.userId !== userId) {
+      throw new AppException(
+        ErrorCode.PORTFOLIO_NOT_FOUND,
+        'Portfolio not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return portfolio;
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdatePortfolioDto,
+  ): Promise<Portfolio> {
+    await this.findOwnedOrThrow(id, userId);
+
+    return this.prisma.portfolio.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        updatedBy: userId,
+      },
+    });
+  }
+
+  async softDelete(id: string, userId: string): Promise<Portfolio> {
+    await this.findOwnedOrThrow(id, userId);
+
+    return this.prisma.portfolio.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        updatedBy: userId,
+      },
     });
   }
 }
