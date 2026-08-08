@@ -10,6 +10,7 @@ import { ClerkAuthModule } from './auth/clerk-auth.module';
 import { UserModule } from './user/user.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { MarketDataModule } from './market-data/market-data.module';
+import {PredictionLedgerModule} from "./prediction-ledger/prediction-ledger.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MarketDataModule } from './market-data/market-data.module';
     PortfolioModule,
     PositionModule,
     MarketDataModule,
+    PredictionLedgerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
