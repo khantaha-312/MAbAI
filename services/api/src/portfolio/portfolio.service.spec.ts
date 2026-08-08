@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PortfolioService } from './portfolio.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MarketDataService } from '../market-data/market-data.service';
 
 describe('PortfolioService', () => {
   let service: PortfolioService;
@@ -11,6 +12,10 @@ describe('PortfolioService', () => {
       findUnique: jest.Mock;
       update: jest.Mock;
     };
+  };
+  let marketDataService: {
+    getEquityPriceUsd: jest.Mock;
+    getCryptoPriceUsd: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -23,16 +28,23 @@ describe('PortfolioService', () => {
       },
     };
 
+    marketDataService = {
+      getEquityPriceUsd: jest.fn().mockResolvedValue(null),
+      getCryptoPriceUsd: jest.fn().mockResolvedValue(null),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PortfolioService,
         { provide: PrismaService, useValue: prisma },
+        { provide: MarketDataService, useValue: marketDataService },
       ],
     }).compile();
 
     service = module.get<PortfolioService>(PortfolioService);
   });
 
+  // ... every existing it()/describe() block below stays exactly the same
   it('creates a portfolio scoped to the given user and org', async () => {
     prisma.portfolio.create.mockResolvedValue({ id: 'p1', name: 'Test' });
     await service.create('user1', 'org1', { name: 'Test' });

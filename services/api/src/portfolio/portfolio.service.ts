@@ -4,11 +4,15 @@ import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { AppException } from '../shared/exceptions/app.exception';
 import { ErrorCode } from '../shared/errors/error-code';
+import { MarketDataService } from '../market-data/market-data.service';
 import type { Portfolio } from '@prisma/client';
 
 @Injectable()
 export class PortfolioService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly marketDataService: MarketDataService,
+  ) {}
 
   async create(
     userId: string,
@@ -35,12 +39,6 @@ export class PortfolioService {
     });
   }
 
-  /**
-   * Fetches a single portfolio and verifies ownership. Throws NOT_FOUND
-   * (not FORBIDDEN) if the portfolio belongs to someone else — this
-   * deliberately avoids confirming to a caller that a given ID exists
-   * at all if they don't own it.
-   */
   private async findOwnedOrThrow(
     id: string,
     userId: string,
@@ -77,9 +75,10 @@ export class PortfolioService {
   }
 
   /**
-   * Returns a single portfolio with its non-deleted positions and each
-   * position's instrument details nested in. This is a read-only
-   * aggregation — no live pricing, no calculated P&L (that's Phase 6/7).
+   * Returns a single portfolio with its non-deleted positions, each
+   * position's instrument details, and a best-effort live currentPriceUsd
+   * per position. A failed price lookup does NOT fail the whole summary —
+   * currentPriceUsd is simply null in that case.
    */
   async getSummary(id: string, userId: string) {
     const portfolio = await this.prisma.portfolio.findUnique({
@@ -101,7 +100,30 @@ export class PortfolioService {
       );
     }
 
-    return portfolio;
+    const positionsWithPrices = await Promise.all(
+      portfolio.positions.map(async (position) => {
+        let currentPriceUsd: number | null = null;
+
+        if (position.instrument.assetType === 'equity') {
+          currentPriceUsd = await this.marketDataService.getEquityPriceUsd(
+            position.instrument.symbol,
+          );
+        } else if (position.instrument.assetType === 'crypto') {
+          // TEMPORARY hardcoded symbol->CoinGecko-id map, covers only our
+          // seeded instruments. Real fix: use SymbolMapping table (Phase 6
+          // follow-up), not this shortcut.
+          const coinGeckoIdMap: Record<string, string> = { BTC: 'bitcoin' };
+          const coinId = coinGeckoIdMap[position.instrument.symbol];
+          if (coinId) {
+            currentPriceUsd = await this.marketDataService.getCryptoPriceUsd(coinId);
+          }
+        }
+
+        return { ...position, currentPriceUsd };
+      }),
+    );
+
+    return { ...portfolio, positions: positionsWithPrices };
   }
 
   async softDelete(id: string, userId: string): Promise<Portfolio> {
