@@ -104,4 +104,30 @@ describe('PortfolioService', () => {
       expect(result.deletedAt).not.toBeNull();
     });
   });
+
+  describe('getSummary', () => {
+    it('throws PORTFOLIO_NOT_FOUND if not owned by user', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue({
+        id: 'p1',
+        userId: 'someone-else',
+        deletedAt: null,
+      });
+
+      await expect(service.getSummary('p1', 'user1')).rejects.toThrow(
+        'Portfolio not found',
+      );
+    });
+
+    it('returns portfolio with nested positions when owned', async () => {
+      prisma.portfolio.findUnique.mockResolvedValue({
+        id: 'p1',
+        userId: 'user1',
+        deletedAt: null,
+        positions: [{ id: 'pos1', instrument: { symbol: 'AAPL' } }],
+      });
+
+      const result = await service.getSummary('p1', 'user1');
+      expect(result.positions).toHaveLength(1);
+    });
+  });
 });

@@ -36,6 +36,12 @@ export class PortfolioController {
     return { data: portfolios };
   }
 
+  @Get(':id/summary')
+  async getSummary(@CurrentUser() user: User, @Param('id') id: string) {
+    const portfolio = await this.portfolioService.getSummary(id, user.id);
+    return { data: portfolio };
+  }
+
   @Patch(':id')
   async update(
     @CurrentUser() user: User,

@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { AppException } from '../shared/exceptions/app.exception';
 import { ErrorCode } from '../shared/errors/error-code';
-import { HttpStatus } from '@nestjs/common';
 import type { Portfolio } from '@prisma/client';
 
 @Injectable()
@@ -75,6 +74,34 @@ export class PortfolioService {
         updatedBy: userId,
       },
     });
+  }
+
+  /**
+   * Returns a single portfolio with its non-deleted positions and each
+   * position's instrument details nested in. This is a read-only
+   * aggregation — no live pricing, no calculated P&L (that's Phase 6/7).
+   */
+  async getSummary(id: string, userId: string) {
+    const portfolio = await this.prisma.portfolio.findUnique({
+      where: { id },
+      include: {
+        positions: {
+          where: { deletedAt: null },
+          include: { instrument: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!portfolio || portfolio.deletedAt !== null || portfolio.userId !== userId) {
+      throw new AppException(
+        ErrorCode.PORTFOLIO_NOT_FOUND,
+        'Portfolio not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return portfolio;
   }
 
   async softDelete(id: string, userId: string): Promise<Portfolio> {
