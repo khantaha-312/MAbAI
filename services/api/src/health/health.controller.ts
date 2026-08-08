@@ -2,11 +2,15 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { MarketDataService } from '../market-data/market-data.service';
 import type { User } from '@prisma/client';
 
 @Controller()
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly marketDataService: MarketDataService,
+  ) {}
 
   @Get('health')
   async health() {
@@ -31,11 +35,18 @@ export class HealthController {
     return {
       status: 'ok',
       message: 'You are authenticated',
-      user: {
-        id: user.id,
-        email: user.email,
-        orgId: user.orgId,
-      },
+      user: { id: user.id, email: user.email, orgId: user.orgId },
     };
   }
+
+  @Get('health/btc-price')
+  async btcPrice() {
+    const price = await this.marketDataService.getCryptoPriceUsd('bitcoin');
+    return { btcUsd: price };
+  }
+  @Get('health/aapl-price')
+async aaplPrice() {
+  const price = await this.marketDataService.getEquityPriceUsd('AAPL');
+  return { aaplUsd: price };
+}
 }

@@ -9,6 +9,7 @@ import { PositionModule } from './position/position.module';
 import { ClerkAuthModule } from './auth/clerk-auth.module';
 import { UserModule } from './user/user.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
+import { MarketDataModule } from './market-data/market-data.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PortfolioModule } from './portfolio/portfolio.module';
     UserModule,
     PortfolioModule,
     PositionModule,
+    MarketDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],
