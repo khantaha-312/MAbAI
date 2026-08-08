@@ -7,8 +7,7 @@ import { LoggerModule } from './logger/logger.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ClerkAuthModule } from './auth/clerk-auth.module';
 import { UserModule } from './user/user.module';
-
-
+import { PortfolioModule } from './portfolio/portfolio.module';
 
 @Module({
   imports: [
@@ -18,10 +17,9 @@ import { UserModule } from './user/user.module';
     HealthModule,
     ClerkAuthModule,
     UserModule,
+    PortfolioModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-
-
