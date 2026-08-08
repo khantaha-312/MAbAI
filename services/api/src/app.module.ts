@@ -5,6 +5,7 @@ import { HealthModule } from './health/health.module';
 import { ConfigModule } from './config/config.module';
 import { LoggerModule } from './logger/logger.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PositionModule } from './position/position.module';
 import { ClerkAuthModule } from './auth/clerk-auth.module';
 import { UserModule } from './user/user.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
@@ -18,6 +19,7 @@ import { PortfolioModule } from './portfolio/portfolio.module';
     ClerkAuthModule,
     UserModule,
     PortfolioModule,
+    PositionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,7 +8,7 @@ import * as path from 'path';
   imports: [
     NestConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: path.join(__dirname, '../../../../.env'),
+      envFilePath: path.resolve(process.cwd(), '../../.env'),
     }),
   ],
   providers: [ConfigService],
