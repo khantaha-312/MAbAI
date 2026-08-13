@@ -1,59 +1,49 @@
-import { Injectable, Logger } from '@nestjs/common';
-
-interface CoinGeckoPriceResponse {
-  [coinId: string]: { usd: number };
-}
-
-interface FinnhubQuoteResponse {
-  c: number;
-  pc: number;
-}
+import { Inject, Injectable } from '@nestjs/common';
+import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
+import {
+  COINGECKO_PROVIDER,
+  FINNHUB_PROVIDER,
+  ALPHA_VANTAGE_PROVIDER,
+  EIA_PROVIDER,
+  GOLD_API_PROVIDER,
+  FRANKFURTER_PROVIDER,
+} from './market-data-provider.interface';
 
 @Injectable()
 export class MarketDataService {
-  private readonly logger = new Logger(MarketDataService.name);
-  private readonly coinGeckoBaseUrl = 'https://api.coingecko.com/api/v3';
-  private readonly finnhubBaseUrl = 'https://finnhub.io/api/v1';
+  constructor(
+    @Inject(COINGECKO_PROVIDER) private readonly cryptoProvider: MarketDataProvider,
+    @Inject(FINNHUB_PROVIDER) private readonly equityProvider: MarketDataProvider,
+    @Inject(ALPHA_VANTAGE_PROVIDER) private readonly equityHistoricalProvider: MarketDataProvider,
+    @Inject(EIA_PROVIDER) private readonly oilProvider: MarketDataProvider,
+    @Inject(GOLD_API_PROVIDER) private readonly metalsProvider: MarketDataProvider,
+    @Inject(FRANKFURTER_PROVIDER) private readonly forexProvider: MarketDataProvider,
+  ) {}
 
   async getCryptoPriceUsd(coinId: string): Promise<number | null> {
-    const url = `${this.coinGeckoBaseUrl}/simple/price?ids=${coinId}&vs_currencies=usd`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`CoinGecko returned ${response.status} for ${coinId}`);
-        return null;
-      }
-
-      const data = (await response.json()) as CoinGeckoPriceResponse;
-      return data[coinId]?.usd ?? null;
-    } catch (error) {
-      this.logger.error(`Failed to fetch CoinGecko price for ${coinId}`, error);
-      return null;
-    }
+    return this.cryptoProvider.getPriceUsd(coinId);
   }
 
   async getEquityPriceUsd(symbol: string): Promise<number | null> {
-    const apiKey = process.env.FINNHUB_API_KEY;
-    if (!apiKey) {
-      this.logger.error('FINNHUB_API_KEY is not set');
-      return null;
-    }
+    return this.equityProvider.getPriceUsd(symbol);
+  }
 
-    const url = `${this.finnhubBaseUrl}/quote?symbol=${symbol}&token=${apiKey}`;
+  async getEquityHistoricalPricesUsd(symbol: string, days: number): Promise<PriceBarData[] | null> {
+    return this.equityHistoricalProvider.getHistoricalPricesUsd?.(symbol, days) ?? null;
+  }
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`Finnhub returned ${response.status} for ${symbol}`);
-        return null;
-      }
+  async getOilPriceUsd(identifier: 'WTI' | 'BRENT'): Promise<number | null> {
+    return this.oilProvider.getPriceUsd(identifier);
+  }
 
-      const data = (await response.json()) as FinnhubQuoteResponse;
-      return data.c > 0 ? data.c : null;
-    } catch (error) {
-      this.logger.error(`Failed to fetch Finnhub price for ${symbol}`, error);
-      return null;
-    }
+  async getMetalPriceUsd(symbol: string): Promise<number | null> {
+    return this.metalsProvider.getPriceUsd(symbol);
+  }
+
+  async getForexRate(currencyCode: string): Promise<number | null> {
+    return this.forexProvider.getPriceUsd(currencyCode);
+  }
+    async getCryptoHistoricalPricesUsd(coinId: string, days: number): Promise<PriceBarData[] | null> {
+    return this.cryptoProvider.getHistoricalPricesUsd?.(coinId, days) ?? null;
   }
 }

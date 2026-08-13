@@ -8,5 +8,6 @@ import { MarketDataModule } from '../market-data/market-data.module';
   imports: [UserModule, MarketDataModule],
   controllers: [PortfolioController],
   providers: [PortfolioService],
+  exports: [PortfolioService],
 })
 export class PortfolioModule {}

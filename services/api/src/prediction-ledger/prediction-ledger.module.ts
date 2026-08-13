@@ -7,5 +7,6 @@ import { UserModule } from '../user/user.module';
   imports: [UserModule],
   controllers: [PredictionLedgerController],
   providers: [PredictionLedgerService],
+  exports: [PredictionLedgerService],
 })
 export class PredictionLedgerModule {}

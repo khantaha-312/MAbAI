@@ -8,6 +8,7 @@ export const configSchema = z.object({
   CLERK_PUBLISHABLE_KEY: z.string().min(1, 'CLERK_PUBLISHABLE_KEY is required'),
   CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
   FINNHUB_API_KEY: z.string().min(1, 'FINNHUB_API_KEY is required'),
+  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required'),
 });
 
 export type ConfigSchema = z.infer<typeof configSchema>;

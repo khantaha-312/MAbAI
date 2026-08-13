@@ -11,6 +11,10 @@ import { UserModule } from './user/user.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import {PredictionLedgerModule} from "./prediction-ledger/prediction-ledger.module";
+import { AiOrchestrationModule } from './ai-orchestration/ai-orchestration.module';
+import { AlertsModule } from './alerts/alerts.module'; 
+import { BillingModule } from './billing/billing.module';
+import { PriceBarModule } from './price-bar/price-bar.module';
 
 @Module({
   imports: [
@@ -24,6 +28,10 @@ import {PredictionLedgerModule} from "./prediction-ledger/prediction-ledger.modu
     PositionModule,
     MarketDataModule,
     PredictionLedgerModule,
+    AiOrchestrationModule,
+    AlertsModule,
+    BillingModule,
+    PriceBarModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,49 +1,37 @@
+@layer theme, base, clerk, components, utilities;
+@import "tailwindcss";
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@theme {
+  --color-void: #0A0D12;
+  --color-surface: #12161F;
+  --color-hairline: #232838;
+  --color-ink: #F4F6FA;
+  --color-muted: #7C8497;
+  --color-signal: #4DA3FF;
+  --color-gain: #34D399;
+  --color-loss: #F87171;
 
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  --font-display: var(--font-instrument-sans);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Override browser autofill styling for light theme inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #14121F !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
