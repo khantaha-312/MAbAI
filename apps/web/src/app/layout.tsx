@@ -19,8 +19,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VeritasIQ",
-  description: "AI Market Intelligence & Risk Copilot",
+  title: "MABAI",
+  description: "Understand markets with MABAI",
+
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -35,7 +39,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             variables: {
               colorPrimary: "#4DA3FF",
               colorBackground: "#12161F",
-              colorText: "#F4F6FA",
               colorTextSecondary: "#7C8497",
               colorInputBackground: "#0A0D12",
               colorInputText: "#F4F6FA",

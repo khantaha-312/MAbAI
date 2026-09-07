@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
+import { FinnhubAdapter, type FinnhubFundamentals, type FinnhubNewsItem } from './finnhub.adapter';
+import { CoinGeckoAdapter } from './coingecko.adapter';
+import { AlphaVantageAdapter, type AlphaVantageSentimentItem } from './alphavantage.adapter';
 import {
   COINGECKO_PROVIDER,
+  BINANCE_PROVIDER,
   FINNHUB_PROVIDER,
   ALPHA_VANTAGE_PROVIDER,
   EIA_PROVIDER,
@@ -13,11 +17,15 @@ import {
 export class MarketDataService {
   constructor(
     @Inject(COINGECKO_PROVIDER) private readonly cryptoProvider: MarketDataProvider,
+    @Inject(BINANCE_PROVIDER) private readonly cryptoHistoricalProvider: MarketDataProvider,
     @Inject(FINNHUB_PROVIDER) private readonly equityProvider: MarketDataProvider,
     @Inject(ALPHA_VANTAGE_PROVIDER) private readonly equityHistoricalProvider: MarketDataProvider,
     @Inject(EIA_PROVIDER) private readonly oilProvider: MarketDataProvider,
     @Inject(GOLD_API_PROVIDER) private readonly metalsProvider: MarketDataProvider,
     @Inject(FRANKFURTER_PROVIDER) private readonly forexProvider: MarketDataProvider,
+    private readonly finnhubAdapter: FinnhubAdapter,
+    private readonly alphaVantageAdapter: AlphaVantageAdapter,
+    private readonly coinGeckoAdapter: CoinGeckoAdapter,
   ) {}
 
   async getCryptoPriceUsd(coinId: string): Promise<number | null> {
@@ -26,6 +34,18 @@ export class MarketDataService {
 
   async getEquityPriceUsd(symbol: string): Promise<number | null> {
     return this.equityProvider.getPriceUsd(symbol);
+  }
+
+  async getEquityFundamentals(symbol: string): Promise<FinnhubFundamentals | null> {
+    return this.finnhubAdapter.getFundamentals(symbol);
+  }
+
+  async getCompanyNews(symbol: string, fromDate: string, toDate: string): Promise<FinnhubNewsItem[] | null> {
+    return this.finnhubAdapter.getCompanyNews(symbol, fromDate, toDate);
+  }
+
+  async getNewsSentiment(symbol: string): Promise<AlphaVantageSentimentItem[] | null> {
+    return this.alphaVantageAdapter.getNewsSentiment(symbol);
   }
 
   async getEquityHistoricalPricesUsd(symbol: string, days: number): Promise<PriceBarData[] | null> {
@@ -43,7 +63,20 @@ export class MarketDataService {
   async getForexRate(currencyCode: string): Promise<number | null> {
     return this.forexProvider.getPriceUsd(currencyCode);
   }
-    async getCryptoHistoricalPricesUsd(coinId: string, days: number): Promise<PriceBarData[] | null> {
-    return this.cryptoProvider.getHistoricalPricesUsd?.(coinId, days) ?? null;
+
+  async getCryptoHistoricalPricesUsd(ticker: string, days: number): Promise<PriceBarData[] | null> {
+    return this.cryptoHistoricalProvider.getHistoricalPricesUsd?.(ticker, days) ?? null;
+  }
+
+  async searchEquitySymbols(query: string) {
+    return this.finnhubAdapter.searchSymbols(query);
+  }
+
+  async listUsEquitySymbols() {
+    return this.finnhubAdapter.listUsSymbols();
+  }
+
+  async searchCryptoSymbols(query: string) {
+    return this.coinGeckoAdapter.searchCoins(query);
   }
 }

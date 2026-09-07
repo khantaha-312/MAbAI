@@ -23,6 +23,15 @@ export class PredictionLedgerController {
     return { data: entries };
   }
 
+  // Registered before no :id conflict exists (no GET /ledger-entries/:id
+  // route currently defined), but kept as a distinct static segment
+  // regardless so it can never be shadowed if one is added later.
+  @Get('win-rate')
+  async getWinRate(@CurrentUser() user: User) {
+    const result = await this.ledgerService.getWinRate(user.id);
+    return { data: result };
+  }
+
   @Post(':id/resolve')
   async resolve(
     @CurrentUser() user: User,

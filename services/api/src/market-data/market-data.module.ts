@@ -7,10 +7,14 @@ import { AlphaVantageAdapter } from './alphavantage.adapter';
 import { EiaAdapter } from './eia.adapter';
 import { GoldApiAdapter } from './goldapi.adapter';
 import { FrankfurterAdapter } from './frankfurter.adapter';
+import {BinanceAdapter} from './binance.adapter';
+
+
 import {
   COINGECKO_PROVIDER,
   FINNHUB_PROVIDER,
   ALPHA_VANTAGE_PROVIDER,
+  BINANCE_PROVIDER,
   EIA_PROVIDER,
   GOLD_API_PROVIDER,
   FRANKFURTER_PROVIDER,
@@ -22,12 +26,14 @@ import {
     CoinGeckoAdapter,
     FinnhubAdapter,
     AlphaVantageAdapter,
+    BinanceAdapter,
     EiaAdapter,
     GoldApiAdapter,
     FrankfurterAdapter,
     { provide: COINGECKO_PROVIDER, useClass: CoinGeckoAdapter },
     { provide: FINNHUB_PROVIDER, useClass: FinnhubAdapter },
     { provide: ALPHA_VANTAGE_PROVIDER, useClass: AlphaVantageAdapter },
+    { provide: BINANCE_PROVIDER, useClass: BinanceAdapter },
     { provide: EIA_PROVIDER, useClass: EiaAdapter },
     { provide: GOLD_API_PROVIDER, useClass: GoldApiAdapter },
     { provide: FRANKFURTER_PROVIDER, useClass: FrankfurterAdapter },

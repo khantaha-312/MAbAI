@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,101 +8,101 @@ datasource db {
 }
 
 model Org {
-  id        String   @id @default(cuid())
-  name      String
-  createdBy String?
-  updatedBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users      User[]
+  id         String      @id @default(cuid())
+  name       String
+  createdBy  String?
+  updatedBy  String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   portfolios Portfolio[]
+  users      User[]
 }
 
 model User {
-  id        String   @id @default(cuid())
-  orgId     String
-  org       Org      @relation(fields: [orgId], references: [id])
-  email     String   @unique
-  clerkId   String   @unique
-  createdBy String?
-  updatedBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  portfolios Portfolio[]
+  id             String          @id @default(cuid())
+  orgId          String
+  email          String          @unique
+  clerkId        String          @unique
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  portfolios     Portfolio[]
+  org            Org             @relation(fields: [orgId], references: [id])
+  profile        UserProfile?
+  watchlistItems WatchlistItem[]
+  chatMessages ChatMessage[]
+  reportHistoryEntries ReportHistoryEntry[]
 }
 
 model Instrument {
-  id        String   @id @default(cuid())
-  symbol    String
-  name      String
-  assetType String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  symbolMappings SymbolMapping[]
+  id             String          @id @default(cuid())
+  symbol         String
+  name           String
+  assetType      String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   positions      Position[]
   riskFlags      RiskFlag[]
+  symbolMappings SymbolMapping[]
+  watchlistItems WatchlistItem[]
 
   @@unique([symbol, assetType])
 }
 
 model SymbolMapping {
-  id            String     @id @default(cuid())
-  instrumentId  String
-  instrument    Instrument @relation(fields: [instrumentId], references: [id])
-  provider      String
+  id             String     @id @default(cuid())
+  instrumentId   String
+  provider       String
   providerSymbol String
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  instrument     Instrument @relation(fields: [instrumentId], references: [id])
 
   @@unique([provider, providerSymbol])
 }
 
 model Portfolio {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   orgId     String
-  org       Org       @relation(fields: [orgId], references: [id])
   userId    String
-  user      User      @relation(fields: [userId], references: [id])
   name      String
   createdBy String?
   updatedBy String?
   deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  org       Org        @relation(fields: [orgId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
   positions Position[]
 }
 
 model Position {
-  id           String    @id @default(cuid())
+  id           String     @id @default(cuid())
   portfolioId  String
-  portfolio    Portfolio  @relation(fields: [portfolioId], references: [id])
   instrumentId String
-  instrument   Instrument @relation(fields: [instrumentId], references: [id])
   quantity     Decimal
   avgCostBasis Decimal
   createdBy    String?
   updatedBy    String?
   deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  riskFlags RiskFlag[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  portfolio    Portfolio  @relation(fields: [portfolioId], references: [id])
+  riskFlags    RiskFlag[]
 }
 
 model RiskFlag {
-  id         String     @id @default(cuid())
-  positionId String
-  position   Position   @relation(fields: [positionId], references: [id])
+  id           String     @id @default(cuid())
+  positionId   String
   instrumentId String
-  instrument Instrument @relation(fields: [instrumentId], references: [id])
-  flagType   String
-  severity   String
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  flagType     String
+  severity     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  position     Position   @relation(fields: [positionId], references: [id])
 }
 
 model PriceBar {
@@ -126,28 +120,28 @@ model PriceBar {
 }
 
 model LedgerEntry {
-  id                 String    @id @default(cuid())
-  userId             String
-  inputSnapshot      Json
-  generatedOutput    Json
-  modelProvider      String
-  modelName          String
-  promptTokens       Int?
-  completionTokens   Int?
-  totalCostUsd       Decimal?
-  status             String    @default("pending")
-  outcome            String?
-  actualData         Json?
-  resolvedAt         DateTime?
-  createdAt          DateTime  @default(now())
+  id               String    @id @default(cuid())
+  userId           String
+  inputSnapshot    Json
+  generatedOutput  Json
+  modelProvider    String
+  modelName        String
+  promptTokens     Int?
+  completionTokens Int?
+  totalCostUsd     Decimal?
+  status           String    @default("pending")
+  outcome          String?
+  actualData       Json?
+  resolvedAt       DateTime?
+  createdAt        DateTime  @default(now())
 }
 
 model CalibrationScore {
-  id            String   @id @default(cuid())
-  userId        String
-  score         Decimal
-  sampleSize    Int
-  computedAt    DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  score      Decimal
+  sampleSize Int
+  computedAt DateTime @default(now())
 }
 
 model PromptTemplate {
@@ -160,35 +154,60 @@ model PromptTemplate {
 }
 
 model AlertRule {
-  id        String    @id @default(cuid())
-  userId    String
-  config    Json
-  isActive  Boolean   @default(true)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
+  id         String          @id @default(cuid())
+  userId     String
+  config     Json
+  isActive   Boolean         @default(true)
+  deletedAt  DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
   deliveries AlertDelivery[]
+}
+
+model WatchlistItem {
+  id           String     @id @default(cuid())
+  userId       String
+  instrumentId String
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, instrumentId])
 }
 
 model AlertDelivery {
   id          String    @id @default(cuid())
   alertRuleId String
-  alertRule   AlertRule @relation(fields: [alertRuleId], references: [id])
   channel     String
   status      String
   sentAt      DateTime?
   createdAt   DateTime  @default(now())
+  alertRule   AlertRule @relation(fields: [alertRuleId], references: [id])
+}
+model ReportHistoryEntry {
+  id             String           @id @default(cuid())
+  userId         String
+  symbol         String           // equity/forex/metal/oil: ticker as searched; crypto: CoinGecko `id`, not ticker
+  assetType      String           // one of: 'crypto' | 'equity' | 'forex' | 'metal' | 'oil' — matches evidence-package.service.ts's SupportedAssetType
+  snapshot       Json             // full evidence-package response at generation time
+  narrative      String?          // AI-generated narrative attached after report creation
+  tradingType    TradingType[]
+  tradingStyle   TradingStyle[]
+  riskAppetite   RiskAppetite?
+  investmentPlan InvestmentPlan[]
+  createdAt      DateTime         @default(now())
+  user           User             @relation(fields: [userId], references: [id])
 }
 
 model Subscription {
-  id                String    @id @default(cuid())
-  orgId             String
-  plan              String
-  status            String
-  currentPeriodEnd  DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  orgId            String
+  plan             String
+  status           String
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model UsageCounter {
@@ -210,4 +229,75 @@ model FeatureFlag {
   isEnabled Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ChatMessage {
+  id        String                       @id @default(cuid())
+  userId    String
+  role      String // 'user' | 'assistant' — not an enum yet, matches LedgerEntry.status's plain-string convention already used elsewhere in this schema
+  content   String
+  embedding Unsupported("vector(768)")?
+  createdAt DateTime                     @default(now())
+  user      User                         @relation(fields: [userId], references: [id])
+}
+
+
+model UserProfile {
+  id                     String                 @id @default(cuid())
+  userId                 String                 @unique
+  tradingType            TradingType[]
+  tradingStyle           TradingStyle[]
+  assetClasses           AssetClass[]
+  investmentPlan         InvestmentPlan[]
+  selectedSymbols        String[]
+  onboardingDetails      Json?
+  onboardingCompleted    Boolean                @default(false)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  expertiseTier          ExpertiseTier?
+  maxLeverageTolerance   Float?
+  personaEmbedding       Unsupported("vector(768)")?
+  riskAppetite           RiskAppetite?
+  typicalPositionSizePct Float?
+  user                   User                   @relation(fields: [userId], references: [id])
+}
+
+
+enum TradingType {
+  SPOT
+  FUTURES
+}
+
+enum TradingStyle {
+  SCALPING
+  INTRADAY
+  SWING
+  SHORT_TERM_INVESTMENT
+  LONG_TERM_INVESTMENT
+}
+
+enum AssetClass {
+  STOCKS
+  FOREX
+  COMMODITIES
+  CRYPTO
+}
+
+enum ExpertiseTier {
+  BEGINNER
+  INTERMEDIATE
+  PRO
+}
+
+enum RiskAppetite {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum InvestmentPlan {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }

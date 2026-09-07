@@ -32,4 +32,10 @@ export class RiskEngineController {
     );
     return { data: flags };
   }
+  @Get('analysis')
+  async getAnalysis(@CurrentUser() user: User, @Param('portfolioId') portfolioId: string) {
+    const result = await this.riskEngineService.getRiskAnalysis(portfolioId, user.id);
+    return { data: result };
+  }
+  
 }

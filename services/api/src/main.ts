@@ -9,6 +9,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useLogger(app.get(AppLogger));
 
+  // CORS: frontend runs on a different port (3000) than the API (3001),
+  // so the browser needs explicit permission. Matches the same origins
+  // already trusted by ClerkAuthGuard's authorizedParties list.
+  app.enableCors({
+    origin: ['http://localhost:3000'],
+    credentials: true, // harmless to leave true even though we're using Bearer tokens, not cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

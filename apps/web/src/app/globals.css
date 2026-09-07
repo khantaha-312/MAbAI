@@ -1,8 +1,15 @@
+/*
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+  color-scheme: light; 
+}
+
+body {
+  background: #F8FAFC;
+  color: #111827;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 @theme {
@@ -18,13 +25,47 @@
   --font-display: var(--font-instrument-sans);
   --font-body: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
+} 
+*/
+
+@layer theme, base, clerk, components, utilities;
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
 }
 
-body {
-  background: var(--color-void);
-  color: var(--color-ink);
-  font-family: var(--font-body), system-ui, sans-serif;
+@theme {
+  --color-void: #F0F4F8;
+  --color-surface: #FFFFFF;
+  --color-hairline: #E2E8F0;
+  --color-ink: #0F172A;
+  --color-muted: #64748B;
+  --color-signal: #6366F1; /* Slate/Indigo Accent */
+  --color-gain: #10B981;
+  --color-loss: #EF4444;
+
+  --font-body: var(--font-inter);
 }
+
+/* body {
+  background-color: #F0F4F8;
+  color: #0F172A;
+  font-family: var(--font-body), system-ui, sans-serif;
+} */
+
+/* Onboarding & Dashboard Theme Styling */
+body {
+  background-color: #f1f5f9;
+  background-image: 
+    radial-gradient(at 100% 100%, rgba(148, 163, 184, 0.3) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, rgba(241, 245, 249, 1) 0px, transparent 50%),
+    radial-gradient(at 80% 20%, rgba(203, 213, 225, 0.4) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #0f172a;
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
 
 /* Override browser autofill styling for light theme inputs */
 input:-webkit-autofill,
@@ -34,4 +75,233 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px white inset !important;
   -webkit-text-fill-color: #14121F !important;
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* =================================
+   LOGO + FORM CONTAINER
+================================= */
+
+.form-container {
+  width: min(450px, 92%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* ------------------------------
+   LOGO SECTION
+--------------------------------- */
+
+/* =================================
+   LOGO
+================================= */
+
+.logo-div {
+  width: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Logo form ke bilkul upar */
+  margin-bottom: -20%;
+  margin-top: -20%;
+  /* border: 2px solid red; */
+}
+
+.logo-div img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  /* border: 2px solid blue; */
+}
+
+/* =================================
+   SIGNUP FORM
+================================= */
+
+.signup-form {
+  width: 450px;
+  max-width: 100%;
+  /* border: 2px solid green; */
+}
+
+
+
+
+/* -------- ONBOARDING PAGE ---------- */
+.questions-container {
+  /* border: 2px solid red; */
+}
+
+.questions-div {
+  /* border: 3px solid blue; */
+  text-align: center;
+  padding: 10px;
+}
+.questions-div h1 {
+  /* border: 3px solid yellow; */
+  font-size: 30px;
+}
+
+.options-div {
+  /* border: 3px solid orange; */
+  display: grid;
+  grid-template-columns: repeat(2, 3fr);
+}
+
+.options-div button {
+  /* border: 2px solid green; */
+  padding: 50px 20px 50px 20px;
+  font-size: 20px;
+}
+
+
+.options-div button:focus {
+  border: 1px solid dodgerblue;
+}
+.options-div button:focus span {
+  color: dodgerblue;
+}
+
+
+
+
+
+/* =================================
+   TABLET
+================================= */
+
+@media (max-width: 650px) {
+
+  .form-container {
+    width: 92%;
+  }
+
+  .logo-div {
+    width: 190px;
+    margin-bottom: 15px;
+  }
+
+  .signin-form {
+    width: 100%;
+  }
+}
+
+
+/* =================================
+   MOBILE
+================================= */
+
+@media (max-width: 650px) {
+
+  .form-container {
+    width: 92%;
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  .logo-div {
+    width: 350px;
+    max-width: 70%;
+    margin-bottom: -15%;
+    margin-top: -20%;
+  }
+
+  .signin-form {
+    width: 100%;
+    max-width: 450px;
+  }
+}
+
+
+/* =================================
+   SMALL MOBILE
+================================= */
+
+@media (max-width: 400px) {
+
+  .form-container {
+    width: 94%;
+  }
+
+  .logo-div {
+    width: 160px;
+    margin-bottom: 12px;
+  }
+
+  .signin-form {
+    width: 100%;
+  }
+}
+
+
+
+
+/* ---------------- DASHBOARD PAGE ------------------ */
+/* 
+.logo-div {
+  border: 2px solid blue;
+  width: 20%;
+}
+.logo-div img {
+  border: 2px solid red;
+} */
+
+
+/* body main content */
+.body-main-wrapper {
+  /* border: 3px solid black; */
+  display: flex;
+}
+
+.left-panel {
+  /* border: 3px solid orange; */
+  /* padding: 10px; */
+}
+.logo-section {
+  /* border: 3px solid green; */
+  margin-top: -15%;
+
+}
+.logo-section img {
+  /* border: 3px solid forestgreen; */
+  width: 80%;
+  height: 10%;
+}
+
+.logo-section-text {
+  /* border: 3px solid rgb(103, 172, 103); */
+  margin-top: -20%;
+}
+
+.center-body {
+  /* border: 2px solid black; */
+  margin: 0;
+}
+
+.market-snapshot-div {
+  /* border: 3px solid palevioletred; */
+}
+
+
+
+.right-panel {
+  /* border: 3px solid blue; */
+  padding: 10px;
+}
+
+.right-panel-cards {
+  border: 3px solid lightblue;
+}
+
+
+
+@media (max-width: 1020px) {
+  .logo-div { width: 20%; }
+}
+
+@media (max-width: 900px) {
+
+  .logo-div { width: 25%; }
 }

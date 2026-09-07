@@ -28,7 +28,8 @@ export class ClerkAuthGuard implements CanActivate {
       headers: request.headers as Record<string, string>,
     });
 
-    const { isAuthenticated, toAuth } = await this.clerkClient.authenticateRequest(
+    // Destructure requestState properties to inspect details if verification fails
+    const requestState = await this.clerkClient.authenticateRequest(
       webRequest,
       {
         authorizedParties: [
@@ -39,11 +40,18 @@ export class ClerkAuthGuard implements CanActivate {
       },
     );
 
-    if (!isAuthenticated) {
+    if (!requestState.isAuthenticated) {
+      // Log diagnostic info to the terminal console
+      console.error('Clerk Auth Diagnostic Failure:', {
+        status: requestState.status,
+        reason: requestState.reason,
+        message: requestState.message,
+      });
+
       throw new UnauthorizedException('Invalid or missing authentication token');
     }
 
-    const auth = toAuth();
+    const auth = requestState.toAuth();
     const clerkId = auth.userId;
 
     // Fetch the user's primary email from Clerk to populate our own User record
@@ -64,4 +72,4 @@ export class ClerkAuthGuard implements CanActivate {
 
     return true;
   }
-}
+} 

@@ -15,6 +15,19 @@ import { AiOrchestrationModule } from './ai-orchestration/ai-orchestration.modul
 import { AlertsModule } from './alerts/alerts.module'; 
 import { BillingModule } from './billing/billing.module';
 import { PriceBarModule } from './price-bar/price-bar.module';
+import { TechnicalAnalysisModule } from './technical-analysis/technical-analysis.module'; 
+import { ProfileModule } from './profile/profile.module';
+import { WatchlistModule } from './watchlist/watchlist.module';
+import { EvidencePackageModule } from './evidence-package/evidence-package.module';
+import { FundamentalAnalysisModule } from './fundamental-analysis/fundamental-analysis.module';
+import { MacroAnalysisModule } from './macro-analysis/macro-analysis.module';
+import { NewsSentimentModule } from './news-sentiment/news-sentiment.module';
+import { RiskReplayModule } from './risk-replay/risk-replay.module';
+import { InstrumentsModule } from './instruments/instruments.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ChatModule } from './chat/chat.module';
+import { ReportHistoryModule } from './report-history/report-history.module';
+
 
 @Module({
   imports: [
@@ -32,6 +45,19 @@ import { PriceBarModule } from './price-bar/price-bar.module';
     AlertsModule,
     BillingModule,
     PriceBarModule,
+    TechnicalAnalysisModule,
+    ProfileModule,
+    WatchlistModule,
+    EvidencePackageModule,
+    FundamentalAnalysisModule,
+    MacroAnalysisModule,
+    NewsSentimentModule,
+    RiskReplayModule,
+    InstrumentsModule,
+    ChatModule,
+    ReportHistoryModule,
+    ScheduleModule.forRoot(),
+    
   ],
   controllers: [AppController],
   providers: [AppService],

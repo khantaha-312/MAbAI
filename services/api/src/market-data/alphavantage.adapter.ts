@@ -1,6 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
 
+export interface AlphaVantageSentimentItem {
+  title: string;
+  url: string;
+  time_published: string;
+  summary: string;
+  overall_sentiment_score: number;
+  overall_sentiment_label: string;
+  ticker_sentiment: { ticker: string; relevance_score: string; ticker_sentiment_score: string }[];
+}
+
 interface AlphaVantageDailyResponse {
   'Time Series (Daily)'?: {
     [date: string]: {
@@ -73,5 +83,35 @@ export class AlphaVantageAdapter implements MarketDataProvider {
         close: parseFloat(bar['4. close']),
         volume: parseFloat(bar['5. volume']),
       }));
+  }
+
+  async getNewsSentiment(symbol: string): Promise<AlphaVantageSentimentItem[] | null> {
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    if (!apiKey) {
+      this.logger.error('ALPHA_VANTAGE_API_KEY is not set');
+      return null;
+    }
+    const url = `${this.baseUrl}?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${apiKey}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        this.logger.warn(`Alpha Vantage NEWS_SENTIMENT returned ${response.status} for ${symbol}`);
+        return null;
+      }
+      const data = (await response.json()) as { feed?: AlphaVantageSentimentItem[]; Note?: string; Information?: string };
+      if (data.Note || data.Information) {
+        this.logger.warn(`Alpha Vantage rate limit or info message: ${data.Note ?? data.Information}`);
+        return null;
+      }
+      if (!data.feed) {
+        this.logger.warn(`Alpha Vantage NEWS_SENTIMENT returned no feed for ${symbol}`);
+        return null;
+      }
+      this.logger.debug(`Raw Alpha Vantage sentiment response for ${symbol} (first item): ${JSON.stringify(data.feed[0])}`);
+      return data.feed;
+    } catch (error) {
+      this.logger.error(`Failed to fetch Alpha Vantage sentiment for ${symbol}`, error);
+      return null;
+    }
   }
 }

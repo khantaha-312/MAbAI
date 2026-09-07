@@ -45,20 +45,14 @@ describe('PriceBar backfill (e2e)', () => {
     prisma = app.get(PrismaService);
   }, 30000);
 
-  afterAll(async () => {
-    const instruments = await prisma.instrument.findMany({
-      where: { symbol: { in: ['AAPL', 'bitcoin'] } },
-      select: { id: true },
-    });
-    await prisma.priceBar.deleteMany({
-      where: { instrumentId: { in: instruments.map((i) => i.id) } },
-    });
+    afterAll(async () => {
     await app.close();
   }, 30000);
   
+  
   it('backfills real equity history (Alpha Vantage) and writes PriceBar rows', async () => {
     const res = await request(app.getHttpServer())
-      .post('/price-bars/backfill/equity/AAPL?days=10')
+      .post('/price-bars/backfill/equity/AAPL?days=30')
       .expect(201);
 
     console.log('EQUITY BACKFILL RESULT:', res.body.data);
