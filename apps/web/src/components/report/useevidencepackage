@@ -57,76 +57,6 @@ interface EvidenceSection<T> {
   source?: string;
 }
 
-export interface SentimentData {
-  positivePercent: number | null;
-  neutralPercent: number | null;
-  negativePercent: number | null;
-  source: string | null;
-  modelDerived: true;
-}
-
-/**
- * Six-category breakdown — mirrors EquityFundamentalCategories on the backend.
- * Every field is nullable; Finnhub may return null for any metric on any symbol
- * (confirmed: DIS returned null for epsGrowth5Y, netMarginGrowth5Y).
- */
-export interface EquityFundamentalCategories {
-  valuation: {
-    peRatio: number | null;
-    forwardPE: number | null;
-    peg: number | null;
-    ps: number | null;
-    evEbitda: number | null;
-    priceToBook: number | null;
-    dividendYield: number | null;
-  };
-  growth: {
-    revenueGrowthTTM: number | null;
-    revenueGrowth3Y: number | null;
-    revenueGrowth5Y: number | null;
-    epsGrowthTTM: number | null;
-    epsGrowth3Y: number | null;
-  };
-  profitability: {
-    grossMargin: number | null;
-    operatingMargin: number | null;
-    netMargin: number | null;
-    roe: number | null;
-    roa: number | null;
-    roi: number | null;
-  };
-  financialHealth: {
-    debtToEquity: number | null;
-    currentRatio: number | null;
-    quickRatio: number | null;
-  };
-  cashFlow: {
-    cashFlowPerShare: number | null;
-    pfcfShare: number | null;
-    evFreeCashFlow: number | null;
-  };
-  shareholderReturns: {
-    dividendPerShare: number | null;
-    payoutRatio: number | null;
-    dividendGrowth5Y: number | null;
-  };
-}
-
-export interface FinnhubFundamentals {
-  calculationVersion: string;
-  raw: Record<string, unknown>;
-
-  // Backward-compatible flat fields
-  peRatio: number | null;
-  eps: number | null;
-  marketCapitalization: number | null;
-  profitMargin: number | null;
-  revenueGrowth: number | null;
-
-  // Structured six-category breakdown
-  categories: EquityFundamentalCategories;
-}
-
 export interface EvidencePackage {
   symbol: string;
   assetType: string;
@@ -134,10 +64,10 @@ export interface EvidencePackage {
   timestamp: string;
   market: EvidenceSection<{ price: number; assetType: string }>;
   technical: EvidenceSection<TechnicalAggregate>;
-  fundamental: EvidenceSection<FinnhubFundamentals>;
+  fundamental: EvidenceSection<never>;
   macro: EvidenceSection<never>;
-  news: EvidenceSection<{ articleCount: number; articles: NewsArticle[] }>;
-  sentiment: EvidenceSection<SentimentData>;
+  news: EvidenceSection<never>;
+  sentiment: EvidenceSection<never>;
   portfolio: EvidenceSection<never>;
   behavioral: EvidenceSection<never>;
   dataFreshness: { section: string; asOf: string | null }[];

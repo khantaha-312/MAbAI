@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
 import { FinnhubAdapter, type FinnhubFundamentals, type FinnhubNewsItem } from './finnhub.adapter';
-import { CoinGeckoAdapter } from './coingecko.adapter';
+import { CoinGeckoAdapter, type CoinGeckoTokenomicsData } from './coingecko.adapter'; // <--- FIXED HERE
 import { AlphaVantageAdapter, type AlphaVantageSentimentItem } from './alphavantage.adapter';
+import { MarketDataCacheService } from './market-data-cache.service';
 import {
   COINGECKO_PROVIDER,
   BINANCE_PROVIDER,
@@ -26,14 +27,23 @@ export class MarketDataService {
     private readonly finnhubAdapter: FinnhubAdapter,
     private readonly alphaVantageAdapter: AlphaVantageAdapter,
     private readonly coinGeckoAdapter: CoinGeckoAdapter,
+    private readonly cacheService: MarketDataCacheService,
   ) {}
 
   async getCryptoPriceUsd(coinId: string): Promise<number | null> {
-    return this.cryptoProvider.getPriceUsd(coinId);
+    return this.cacheService.get(
+      `crypto:price:${coinId}`,
+      () => this.cryptoProvider.getPriceUsd(coinId),
+      30000, // 30 seconds TTL for crypto prices
+    );
   }
 
   async getEquityPriceUsd(symbol: string): Promise<number | null> {
-    return this.equityProvider.getPriceUsd(symbol);
+    return this.cacheService.get(
+      `equity:price:${symbol}`,
+      () => this.equityProvider.getPriceUsd(symbol),
+      30000, // 30 seconds TTL for equity prices
+    );
   }
 
   async getEquityFundamentals(symbol: string): Promise<FinnhubFundamentals | null> {
@@ -45,7 +55,11 @@ export class MarketDataService {
   }
 
   async getNewsSentiment(symbol: string): Promise<AlphaVantageSentimentItem[] | null> {
-    return this.alphaVantageAdapter.getNewsSentiment(symbol);
+    return this.cacheService.get(
+      `sentiment:${symbol}`,
+      () => this.alphaVantageAdapter.getNewsSentiment(symbol),
+      21600000, // 6 hours TTL (21,600,000 ms) to protect Alpha Vantage quota while keeping data reasonably fresh
+    );
   }
 
   async getEquityHistoricalPricesUsd(symbol: string, days: number): Promise<PriceBarData[] | null> {
@@ -53,15 +67,27 @@ export class MarketDataService {
   }
 
   async getOilPriceUsd(identifier: 'WTI' | 'BRENT'): Promise<number | null> {
-    return this.oilProvider.getPriceUsd(identifier);
+    return this.cacheService.get(
+      `oil:price:${identifier}`,
+      () => this.oilProvider.getPriceUsd(identifier),
+      60000, // 1 minute TTL for oil prices
+    );
   }
 
   async getMetalPriceUsd(symbol: string): Promise<number | null> {
-    return this.metalsProvider.getPriceUsd(symbol);
+    return this.cacheService.get(
+      `metal:price:${symbol}`,
+      () => this.metalsProvider.getPriceUsd(symbol),
+      60000, // 1 minute TTL for metal prices
+    );
   }
 
   async getForexRate(currencyCode: string): Promise<number | null> {
-    return this.forexProvider.getPriceUsd(currencyCode);
+    return this.cacheService.get(
+      `forex:rate:${currencyCode}`,
+      () => this.forexProvider.getPriceUsd(currencyCode),
+      30000, // 30 seconds TTL for forex rates
+    );
   }
 
   async getCryptoHistoricalPricesUsd(ticker: string, days: number): Promise<PriceBarData[] | null> {
@@ -78,5 +104,12 @@ export class MarketDataService {
 
   async searchCryptoSymbols(query: string) {
     return this.coinGeckoAdapter.searchCoins(query);
+  }
+   async getCryptoTokenomics(symbol: string): Promise<CoinGeckoTokenomicsData | null> {
+    return this.cacheService.get(
+      `crypto:tokenomics:${symbol}`,
+      () => this.coinGeckoAdapter.getTokenomics(symbol),
+      3600000, // 1 hour TTL (3,600,000 ms) to protect API budget
+    );
   }
 }

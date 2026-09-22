@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -47,17 +48,19 @@ async function request<T>(
 export function useApiClient() {
   const { getToken } = useAuth();
 
-  async function call<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const call = useCallback(async <T>(path: string, options: RequestInit = {}): Promise<T> => {
     const token = await getToken();
     return request<T>(path, token, options);
-  }
+  }, [getToken]);
 
-  return {
+  const apiClient = useMemo(() => ({
     get: <T>(path: string) => call<T>(path, { method: "GET" }),
     post: <T>(path: string, body?: unknown) =>
       call<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
     put: <T>(path: string, body?: unknown) =>
       call<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
     delete: <T>(path: string) => call<T>(path, { method: "DELETE" }),
-  };
+  }), [call]);
+
+  return apiClient;
 }

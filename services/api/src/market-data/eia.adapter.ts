@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
+import { fetchWithBackoff } from './fetch-with-backoff.util';
 
 interface EiaDataPoint {
   period: string;
@@ -34,11 +35,17 @@ export class EiaAdapter implements MarketDataProvider {
     }
     const url = `${this.baseUrl}?api_key=${apiKey}&frequency=daily&data[0]=value&facets[series][]=${seriesId.split('.')[1]}&sort[0][column]=period&sort[0][direction]=desc&length=${limit}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`EIA returned ${response.status} for ${identifier}`);
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `EIA series fetch for ${identifier}`,
+        },
+      );
       const data = (await response.json()) as EiaResponse;
       return data.response?.data ?? null;
     } catch (error) {

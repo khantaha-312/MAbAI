@@ -25,7 +25,10 @@ describe('GeminiProvider', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        candidates: [{ content: { parts: [{ text: 'Real analysis text' }] } }],
+        candidates: [{ 
+          content: { parts: [{ text: 'Real analysis text' }] },
+          finishReason: 'STOP',
+        }],
         usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 50 },
       }),
     }) as any;
@@ -59,5 +62,23 @@ describe('GeminiProvider', () => {
     await expect(
       provider.generateCompletion({ systemPrompt: 'x', userPrompt: 'y' }),
     ).rejects.toThrow('Gemini returned no completion text');
+  });
+
+  it('concatenates multiple parts correctly', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ 
+          content: { parts: [{ text: 'First part' }, { text: ' second part' }, { text: ' third part' }] },
+          finishReason: 'STOP',
+        }],
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 50 },
+      }),
+    }) as any;
+
+    const result = await provider.generateCompletion({ systemPrompt: 'sys', userPrompt: 'user' });
+
+    expect(result.text).toBe('First part second part third part');
+    expect(result.modelProvider).toBe('google');
   });
 });

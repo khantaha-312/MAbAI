@@ -44,37 +44,61 @@ function ReportsPageContent() {
   const [endDate, setEndDate] = useState("2024-05-14");
   const [assetClass, setAssetClass] = useState("All Asset Classes");
 
-  // New: which symbol the report is for. Hardcoded to AAPL for now since
-  // there's no real symbol picker/search UI on this page yet — swap this
-  // for real user-driven selection (e.g. a search box using
-  // MarketDataService.searchEquitySymbols) once that's built.
-  const [symbol, setSymbol] = useState("AAPL");
+  // New: which symbol the report is for. Defaults to empty - will be loaded
+  // from the latest report history entry if no ?id= param is present.
+  const [symbol, setSymbol] = useState("");
 
   // When ?id= is present, the loaded entry's real backend assetType
   // ('equity' | 'crypto' | 'forex' | 'metal' | 'oil') overrides the
   // dropdown-derived default passed to ReportAnalysis.
   const [entryAssetType, setEntryAssetType] = useState<string | null>(null);
+  const [isLoadingEntry, setIsLoadingEntry] = useState(false);
 
   // Load the report-history entry on mount and derive symbol/assetType
-  // from it. Fetch failure falls back to the hardcoded defaults above.
+  // from it. If no ?id= param, fetch the latest report from history.
   useEffect(() => {
-    if (!reportHistoryId) return;
+    setIsLoadingEntry(true);
     let cancelled = false;
-    api
-      .get<{ symbol: string; assetType: string }>(`/report-history/${reportHistoryId}`)
-      .then((entry) => {
-        if (!cancelled && entry.symbol && entry.assetType) {
-          setSymbol(entry.symbol);
-          setEntryAssetType(entry.assetType);
-        }
-      })
-      .catch(() => {
-        // Entry fetch failed — keep defaults.
-      });
+
+    if (reportHistoryId) {
+      // Load specific report by ID
+      api
+        .get<{ symbol: string; assetType: string }>(`/report-history/${reportHistoryId}`)
+        .then((entry) => {
+          if (!cancelled && entry.symbol && entry.assetType) {
+            setSymbol(entry.symbol);
+            setEntryAssetType(entry.assetType);
+          }
+        })
+        .catch(() => {
+          // Entry fetch failed — keep empty state.
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoadingEntry(false);
+        });
+    } else {
+      // No ?id= param - fetch latest report from history
+      api
+        .get<Array<{ id: string; symbol: string; assetType: string }>>('/report-history')
+        .then((entries) => {
+          if (!cancelled && entries && entries.length > 0) {
+            const latest = entries[0]; // Most recent (ordered by createdAt desc)
+            setSymbol(latest.symbol);
+            setEntryAssetType(latest.assetType);
+          }
+        })
+        .catch(() => {
+          // Latest report fetch failed — keep empty state.
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoadingEntry(false);
+        });
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [reportHistoryId]);
+  }, [reportHistoryId, api]);
 
   return (
     <main className="flex min-h-screen bg-slate-50">
@@ -87,41 +111,54 @@ function ReportsPageContent() {
 
       {/* Main page */}
       <div className="flex-1 p-6">
-        {/* Top section */}
-        <ReportsTopbar
-          startDate={startDate}
-          endDate={endDate}
-          assetClass={assetClass}
-        />
-
-        {/* Main report layout */}
-        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] items-start gap-6">
-          {/* Main report content */}
-          <div className="min-w-0">
-            <ReportAnalysis
+        {/* Show loading state while fetching the report-history entry */}
+        {isLoadingEntry ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-slate-400">Loading report…</p>
+          </div>
+        ) : !symbol ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-slate-400">No reports found. Generate a report first.</p>
+          </div>
+        ) : (
+          <>
+            {/* Top section */}
+            <ReportsTopbar
               startDate={startDate}
               endDate={endDate}
-              setStartDate={setStartDate}
-              setEndDate={setEndDate}
-              assetClass={entryAssetType ?? toBackendAssetType(assetClass)}
-              setAssetClass={setAssetClass}
-              symbol={symbol}
-              reportHistoryId={reportHistoryId ?? undefined}
+              assetClass={assetClass}
             />
-          </div>
 
-          {/* AI chat sidebar */}
-          <div className="sticky top-6 h-[calc(100vh-3rem)] min-w-0 self-start">
-            <AiMarketAssistant />
-          </div>
-        </div>
+            {/* Main report layout */}
+            <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] items-start gap-6">
+              {/* Main report content */}
+              <div className="min-w-0">
+                <ReportAnalysis
+                  startDate={startDate}
+                  endDate={endDate}
+                  setStartDate={setStartDate}
+                  setEndDate={setEndDate}
+                  assetClass={entryAssetType ?? toBackendAssetType(assetClass)}
+                  setAssetClass={setAssetClass}
+                  symbol={symbol}
+                  reportHistoryId={reportHistoryId ?? undefined}
+                />
+              </div>
 
-        {/* Disclaimer */}
-        <p className="mt-5 text-center text-xs text-slate-400">
-          Disclaimer: This report is generated by AI based on available data
-          and third-party sources. It does not constitute financial advice.
-          Please do your own research before investing.
-        </p>
+              {/* AI chat sidebar */}
+              <div className="sticky top-6 h-[calc(100vh-3rem)] min-w-0 self-start">
+                <AiMarketAssistant />
+              </div>
+            </div>
+
+            {/* Disclaimer */}
+            <p className="mt-5 text-center text-xs text-slate-400">
+              Disclaimer: This report is generated by AI based on available data
+              and third-party sources. It does not constitute financial advice.
+              Please do your own research before investing.
+            </p>
+          </>
+        )}
       </div>
     </main>
   );

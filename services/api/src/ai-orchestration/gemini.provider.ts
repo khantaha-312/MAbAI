@@ -4,6 +4,7 @@ import type { ModelProvider, ModelCompletionRequest, ModelCompletionResult } fro
 interface GeminiResponse {
   candidates?: {
     content: { parts: { text: string }[] };
+    finishReason?: string;
   }[];
   usageMetadata?: {
     promptTokenCount: number;
@@ -49,7 +50,15 @@ export class GeminiProvider implements ModelProvider {
       throw new Error(`Gemini API error: ${data.error?.message ?? response.statusText}`);
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Log finishReason for debugging truncation issues
+    const finishReason = data.candidates?.[0]?.finishReason;
+    this.logger.log(`Gemini generation finishReason: ${finishReason}`);
+
+    // Fix: Read all parts, not just the first one (was causing text truncation)
+    const text = data.candidates?.[0]?.content?.parts
+      ?.map((p) => p.text)
+      .join('') || undefined;
+    
     if (!text) {
       throw new Error('Gemini returned no completion text');
     }

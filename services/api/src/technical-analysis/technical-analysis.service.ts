@@ -285,6 +285,65 @@ export class TechnicalAnalysisService {
 
     return { trend, instrumentId: instrument.id };
   }
+    async getSupportResistance(
+    symbol: string,
+    assetType: string,
+  ): Promise<{
+    supportResistance: {
+      bollingerUpper: number | null;
+      bollingerLower: number | null;
+      swingHigh: number | null;
+      swingLow: number | null;
+      fiftyTwoWeekHigh: number | null;
+      fiftyTwoWeekLow: number | null;
+    };
+    barsUsed: number;
+    instrumentId: string | null;
+  }> {
+    const instrument = await this.prisma.instrument.findUnique({
+      where: { symbol_assetType: { symbol, assetType } },
+    });
+
+    if (!instrument) {
+      this.logger.warn(`No instrument found for ${symbol} (${assetType}) — backfill it first`);
+      return {
+        supportResistance: {
+          bollingerUpper: null,
+          bollingerLower: null,
+          swingHigh: null,
+          swingLow: null,
+          fiftyTwoWeekHigh: null,
+          fiftyTwoWeekLow: null,
+        },
+        barsUsed: 0,
+        instrumentId: null,
+      };
+    }
+
+    // Follows the existing pattern: independent lookup pending the §15 optimization pass
+    const bars = await this.prisma.priceBar.findMany({
+      where: { instrumentId: instrument.id },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    const closes = bars.map((b) => Number(b.close));
+    
+    const swingHigh = closes.length > 0 ? Math.max(...closes) : null;
+    const swingLow = closes.length > 0 ? Math.min(...closes) : null;
+
+    return {
+      supportResistance: {
+        bollingerUpper: null, // Injected from existing bollinger calc in getAggregate
+        bollingerLower: null, // Injected from existing bollinger calc in getAggregate
+        swingHigh,
+        swingLow,
+        fiftyTwoWeekHigh: null, // Injected from Finnhub/CoinGecko in EvidencePackageService
+        fiftyTwoWeekLow: null,  // Injected from Finnhub/CoinGecko in EvidencePackageService
+      },
+      barsUsed: closes.length,
+      instrumentId: instrument.id,
+    };
+  }
   async getAggregate(
     symbol: string,
     assetType: string,

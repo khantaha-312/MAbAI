@@ -3,11 +3,13 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { WatchlistService } from './watchlist.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataService } from '../market-data/market-data.service';
+import { MarketDataCacheService } from '../market-data/market-data-cache.service';
 
 describe('WatchlistService', () => {
   let service: WatchlistService;
   let prisma: any;
   let marketData: any;
+  let cacheService: any;
 
   beforeEach(async () => {
     prisma = {
@@ -22,6 +24,7 @@ describe('WatchlistService', () => {
       },
       $transaction: jest.fn(),
     };
+    
     marketData = {
       getCryptoPriceUsd: jest.fn(),
       getEquityPriceUsd: jest.fn(),
@@ -30,11 +33,16 @@ describe('WatchlistService', () => {
       getOilPriceUsd: jest.fn(),
     };
 
+    cacheService = {
+      get: jest.fn((key, fn) => fn()),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WatchlistService,
         { provide: PrismaService, useValue: prisma },
         { provide: MarketDataService, useValue: marketData },
+        { provide: MarketDataCacheService, useValue: cacheService },
       ],
     }).compile();
 

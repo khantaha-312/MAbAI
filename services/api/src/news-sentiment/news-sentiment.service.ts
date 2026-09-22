@@ -12,6 +12,7 @@ export interface NewsArticle {
 export interface NewsSentimentResult {
   available: boolean;
   reason?: string;
+  source?: string;
   articles: NewsArticle[];
   articleCount: number;
   sentiment: {
@@ -33,7 +34,7 @@ export class NewsSentimentService {
 
   constructor(private readonly marketData: MarketDataService) {}
 
-  async getNewsAndSentiment(symbol: string, includeSentiment = false): Promise<NewsSentimentResult> {
+  async getNewsAndSentiment(symbol: string, includeSentiment: boolean) {
     const today = new Date();
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);

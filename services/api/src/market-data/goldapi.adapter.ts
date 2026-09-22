@@ -24,13 +24,19 @@ export class GoldApiAdapter implements MarketDataProvider {
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        this.logger.warn(`Gold-API returned ${response.status} for ${symbol}`);
+        const errorBody = await response.text();
+        this.logger.error(
+          `Gold-API price fetch failed for ${symbol}: status=${response.status} body=${errorBody} message=${response.statusText}`,
+        );
         return null;
       }
       const data = (await response.json()) as GoldApiPriceResponse;
       return data.price ?? null;
     } catch (error) {
-      this.logger.error(`Failed to fetch Gold-API price for ${symbol}`, error);
+      const err = error as Error;
+      this.logger.error(
+        `Gold-API fetch exception for ${symbol}: message=${err.message} stack=${err.stack?.substring(0, 200)}`,
+      );
       return null;
     }
   }
@@ -47,7 +53,10 @@ export class GoldApiAdapter implements MarketDataProvider {
     try {
       const response = await fetch(url, { headers: { 'x-api-key': apiKey } });
       if (!response.ok) {
-        this.logger.warn(`Gold-API OHLC returned ${response.status} for ${symbol}`);
+        const errorBody = await response.text();
+        this.logger.error(
+          `Gold-API OHLC fetch failed for ${symbol}: status=${response.status} body=${errorBody} message=${response.statusText}`,
+        );
         return null;
       }
       const data = (await response.json()) as GoldApiOhlcResponse;
@@ -63,7 +72,10 @@ export class GoldApiAdapter implements MarketDataProvider {
         },
       ];
     } catch (error) {
-      this.logger.error(`Failed to fetch Gold-API OHLC for ${symbol}`, error);
+      const err = error as Error;
+      this.logger.error(
+        `Gold-API OHLC fetch exception for ${symbol}: message=${err.message} stack=${err.stack?.substring(0, 200)}`,
+      );
       return null;
     }
   }

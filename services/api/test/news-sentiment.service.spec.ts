@@ -56,4 +56,18 @@ describe('NewsSentimentService', () => {
     expect(result.available).toBe(true); // news itself still available
     expect(result.sentiment.available).toBe(false); // sentiment specifically isn't
   });
+
+  it('returns sentiment with null percentages when Alpha Vantage returns data but all labels are neutral', async () => {
+    marketData.getCompanyNews.mockResolvedValue([
+      { headline: 'x', source: 'y', datetime: 1700000000, url: 'u', summary: 's', category: 'c' },
+    ]);
+    marketData.getNewsSentiment.mockResolvedValue([
+      { title: 't', url: 'u', time_published: 'p', summary: 's', overall_sentiment_score: 0, overall_sentiment_label: 'Neutral', ticker_sentiment: [] },
+    ]);
+    const result = await service.getNewsAndSentiment('AAPL', true);
+    expect(result.sentiment.available).toBe(true);
+    expect(result.sentiment.positivePercent).toBe(0);
+    expect(result.sentiment.neutralPercent).toBe(100);
+    expect(result.sentiment.negativePercent).toBe(0);
+  });
 });

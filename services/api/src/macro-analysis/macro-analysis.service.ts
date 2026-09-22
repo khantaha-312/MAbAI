@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MarketDataService } from '../market-data/market-data.service';
+import { MarketDataCacheService } from '../market-data/market-data-cache.service';
 
 export interface MacroSection<T> {
   available: boolean;
@@ -22,14 +23,25 @@ export interface MacroSnapshot {
 export class MacroAnalysisService {
   private readonly logger = new Logger(MacroAnalysisService.name);
 
-  constructor(private readonly marketData: MarketDataService) {}
+  constructor(
+    private readonly marketData: MarketDataService,
+    private readonly cacheService: MarketDataCacheService,
+  ) {}
 
   async getMacroSnapshot(): Promise<MacroSnapshot> {
     const timestamp = new Date().toISOString();
 
     const [wti, brent] = await Promise.all([
-      this.marketData.getOilPriceUsd('WTI'),
-      this.marketData.getOilPriceUsd('BRENT'),
+      this.cacheService.get(
+        'oil:price:WTI',
+        () => this.marketData.getOilPriceUsd('WTI'),
+        300000, // 5 minutes TTL for macro snapshot
+      ),
+      this.cacheService.get(
+        'oil:price:BRENT',
+        () => this.marketData.getOilPriceUsd('BRENT'),
+        300000, // 5 minutes TTL for macro snapshot
+      ),
     ]);
     const oil: MacroSnapshot['oil'] =
       wti === null && brent === null
@@ -39,7 +51,11 @@ export class MacroAnalysisService {
     // "XAU" is gold-api.com's standard gold symbol convention — not yet
     // independently confirmed against this specific adapter's real response.
     // If this comes back null in the e2e test, that's the first thing to check.
-    const goldPrice = await this.marketData.getMetalPriceUsd('XAU');
+    const goldPrice = await this.cacheService.get(
+      'metal:price:XAU',
+      () => this.marketData.getMetalPriceUsd('XAU'),
+      300000, // 5 minutes TTL for macro snapshot
+    );
     const gold: MacroSnapshot['gold'] =
       goldPrice === null
         ? { available: false, data: null, reason: 'gold-api returned no price data for symbol XAU', source: null }
@@ -48,7 +64,11 @@ export class MacroAnalysisService {
     const majorPairs = ['EUR', 'GBP', 'JPY'];
     const rates: Record<string, number> = {};
     for (const code of majorPairs) {
-      const rate = await this.marketData.getForexRate(code);
+      const rate = await this.cacheService.get(
+        `forex:rate:${code}`,
+        () => this.marketData.getForexRate(code),
+        300000, // 5 minutes TTL for macro snapshot
+      );
       if (rate !== null) rates[code] = rate;
     }
     const usdStrength: MacroSnapshot['usdStrength'] =

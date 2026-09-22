@@ -36,7 +36,7 @@ export default function MarketSnapshot() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [api]); // Added api dependency for correctness
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">

@@ -22,7 +22,8 @@
     "prisma:seed": "dotenv -e ../../.env -- prisma db seed",
     "prisma:generate": "dotenv -e ../../.env -- prisma generate",
     "prisma:studio": "dotenv -e ../../.env -- prisma studio",
-    "test:ledger": "dotenv -e ../../.env -- tsx scripts/test-ledger.ts"
+    "test:ledger": "dotenv -e ../../.env -- tsx scripts/test-ledger.ts",
+    "test:consolidation": "dotenv -e ../../.env -- node -r tsconfig-paths/register -r ts-node/register scripts/run-consolidation.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -71,6 +72,7 @@
     "yn": "^3.1.1"
   },
   "jest": {
+    "preset": "ts-jest",
     "moduleFileExtensions": [
       "js",
       "json",
@@ -81,6 +83,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@nestjs)/)"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

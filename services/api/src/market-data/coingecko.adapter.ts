@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
+import { fetchWithBackoff } from './fetch-with-backoff.util';
 
 interface CoinGeckoPriceResponse {
   [coinId: string]: { usd: number };
@@ -19,6 +20,16 @@ interface CoinGeckoSearchResponse {
 interface CoinGeckoMarketChartResponse {
   prices: [number, number][];
   total_volumes: [number, number][];
+}
+
+export interface CoinGeckoTokenomicsData {
+  marketCap: number | null;
+  fullyDilutedValuation: number | null;
+  circulatingSupply: number | null;
+  totalSupply: number | null;
+  maxSupply: number | null;
+  circulatingToMaxRatio: number | null;
+  marketCapToFdvRatio: number | null;
 }
 
 // CoinGecko's free/demo /ohlc endpoint only accepts these exact day values.
@@ -104,15 +115,72 @@ export class CoinGeckoAdapter implements MarketDataProvider {
 
     const url = `${this.baseUrl}/simple/price?ids=${coinId}&vs_currencies=usd`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`CoinGecko returned ${response.status} for ${ticker} (${coinId})`);
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `CoinGecko price fetch for ${ticker} (${coinId})`,
+        },
+      );
       const data = (await response.json()) as CoinGeckoPriceResponse;
       return data[coinId]?.usd ?? null;
     } catch (error) {
       this.logger.error(`Failed to fetch CoinGecko price for ${ticker} (${coinId})`, error);
+      return null;
+    }
+  }
+
+  async getTokenomics(ticker: string): Promise<CoinGeckoTokenomicsData | null> {
+    const coinId = await this.resolveTickerToId(ticker);
+    if (!coinId) {
+      this.logger.warn(`Could not resolve CoinGecko id for ticker ${ticker}`);
+      return null;
+    }
+
+    const url = `${this.baseUrl}/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
+    try {
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `CoinGecko tokenomics fetch for ${ticker} (${coinId})`,
+        },
+      );
+      const data = await response.json();
+      const marketData = data?.market_data;
+      if (!marketData) {
+        this.logger.warn(`CoinGecko returned no market_data for ${ticker} (${coinId})`);
+        return null;
+      }
+
+      const marketCap = typeof marketData.market_cap?.usd === 'number' ? marketData.market_cap.usd : null;
+      const fdv = typeof marketData.fully_diluted_valuation?.usd === 'number' ? marketData.fully_diluted_valuation.usd : null;
+      const circulatingSupply = typeof marketData.circulating_supply === 'number' ? marketData.circulating_supply : null;
+      const totalSupply = typeof marketData.total_supply === 'number' ? marketData.total_supply : null;
+      const maxSupply = typeof marketData.max_supply === 'number' ? marketData.max_supply : null;
+
+      return {
+        marketCap,
+        fullyDilutedValuation: fdv,
+        circulatingSupply,
+        totalSupply,
+        maxSupply,
+        circulatingToMaxRatio:
+          circulatingSupply !== null && maxSupply !== null && maxSupply !== 0
+            ? circulatingSupply / maxSupply
+            : null,
+        marketCapToFdvRatio: marketCap !== null && fdv !== null && fdv !== 0 ? marketCap / fdv : null,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch CoinGecko tokenomics for ${ticker} (${coinId})`, error);
       return null;
     }
   }
@@ -161,11 +229,17 @@ export class CoinGeckoAdapter implements MarketDataProvider {
     const snappedDays = snapToAllowedDays(days);
     const url = `${this.baseUrl}/coins/${coinId}/ohlc?vs_currency=usd&days=${snappedDays}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`CoinGecko OHLC returned ${response.status} for ${ticker} (${coinId})`);
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `CoinGecko OHLC fetch for ${ticker} (${coinId})`,
+        },
+      );
       const data = (await response.json()) as number[][];
 
       return data.map(([timestampMs, open, high, low, close]) => ({
@@ -197,13 +271,17 @@ export class CoinGeckoAdapter implements MarketDataProvider {
     const requestDays = Math.max(days, OHLC_GRANULARITY_CUTOFF_DAYS + 1) + 1;
     const url = `${this.baseUrl}/coins/${coinId}/market_chart?vs_currency=usd&days=${requestDays}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(
-          `CoinGecko market_chart returned ${response.status} for ${ticker} (${coinId})`,
-        );
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `CoinGecko market_chart fetch for ${ticker} (${coinId})`,
+        },
+      );
       const data = (await response.json()) as CoinGeckoMarketChartResponse;
 
       if (!Array.isArray(data.prices) || data.prices.length === 0) {
@@ -237,11 +315,17 @@ export class CoinGeckoAdapter implements MarketDataProvider {
   async searchCoins(query: string): Promise<CoinGeckoSearchCoin[] | null> {
     const url = `${this.baseUrl}/search?query=${encodeURIComponent(query)}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`CoinGecko search returned ${response.status} for "${query}"`);
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `CoinGecko search for "${query}"`,
+        },
+      );
       const data = (await response.json()) as CoinGeckoSearchResponse;
       return Array.isArray(data.coins) ? data.coins : [];
     } catch (error) {

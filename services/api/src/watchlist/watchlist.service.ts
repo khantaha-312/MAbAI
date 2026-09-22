@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // CONFIRM path matches your project
 import { MarketDataService } from '../market-data/market-data.service'; // CONFIRM path
+import { MarketDataCacheService } from '../market-data/market-data-cache.service';
 import { AddWatchlistItemDto } from './dto/add-watchlist-item.dto';
 import { ReorderWatchlistDto } from './dto/reorder-watchlist.dto';
 
@@ -16,6 +17,7 @@ export class WatchlistService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly marketData: MarketDataService,
+    private readonly cacheService: MarketDataCacheService,
   ) {}
 
   private async resolveUserId(clerkId: string): Promise<string> {
@@ -29,18 +31,39 @@ export class WatchlistService {
   // Duplicates the switch logic from MarketDataController.dispatchPrice —
   // flagged as tech debt. Should eventually be extracted into a single
   // public method on MarketDataService so both controllers/services share it.
+  // Now routes through MarketDataCacheService to prevent burst calls.
   private async getPriceFor(assetType: SupportedAssetType, symbol: string): Promise<number | null> {
     switch (assetType) {
       case 'crypto':
-        return this.marketData.getCryptoPriceUsd(symbol);
+        return this.cacheService.get(
+          `crypto:price:${symbol}`,
+          () => this.marketData.getCryptoPriceUsd(symbol),
+          30000, // 30 seconds TTL
+        );
       case 'equity':
-        return this.marketData.getEquityPriceUsd(symbol);
+        return this.cacheService.get(
+          `equity:price:${symbol}`,
+          () => this.marketData.getEquityPriceUsd(symbol),
+          30000, // 30 seconds TTL
+        );
       case 'forex':
-        return this.marketData.getForexRate(symbol);
+        return this.cacheService.get(
+          `forex:rate:${symbol}`,
+          () => this.marketData.getForexRate(symbol),
+          30000, // 30 seconds TTL
+        );
       case 'metal':
-        return this.marketData.getMetalPriceUsd(symbol);
+        return this.cacheService.get(
+          `metal:price:${symbol}`,
+          () => this.marketData.getMetalPriceUsd(symbol),
+          60000, // 1 minute TTL for metals
+        );
       case 'oil':
-        return this.marketData.getOilPriceUsd(symbol as 'WTI' | 'BRENT');
+        return this.cacheService.get(
+          `oil:price:${symbol}`,
+          () => this.marketData.getOilPriceUsd(symbol as 'WTI' | 'BRENT'),
+          60000, // 1 minute TTL for oil
+        );
       default:
         throw new BadRequestException(`Unsupported assetType: ${assetType}`);
     }

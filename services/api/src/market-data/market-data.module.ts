@@ -8,6 +8,8 @@ import { EiaAdapter } from './eia.adapter';
 import { GoldApiAdapter } from './goldapi.adapter';
 import { FrankfurterAdapter } from './frankfurter.adapter';
 import {BinanceAdapter} from './binance.adapter';
+import { MarketDataCacheService } from './market-data-cache.service';
+import { ApiBudgetTrackerService } from './api-budget-tracker.service';
 
 
 import {
@@ -30,6 +32,8 @@ import {
     EiaAdapter,
     GoldApiAdapter,
     FrankfurterAdapter,
+    MarketDataCacheService,
+    ApiBudgetTrackerService,
     { provide: COINGECKO_PROVIDER, useClass: CoinGeckoAdapter },
     { provide: FINNHUB_PROVIDER, useClass: FinnhubAdapter },
     { provide: ALPHA_VANTAGE_PROVIDER, useClass: AlphaVantageAdapter },
@@ -39,6 +43,6 @@ import {
     { provide: FRANKFURTER_PROVIDER, useClass: FrankfurterAdapter },
     MarketDataService,
   ],
-  exports: [MarketDataService],
+  exports: [MarketDataService, MarketDataCacheService],
 })
 export class MarketDataModule {}

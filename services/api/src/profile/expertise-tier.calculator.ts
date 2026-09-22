@@ -21,7 +21,24 @@ export function deriveExpertiseTier(
   input: ExpertiseTierInput,
   minEvidenceRequired = 2,
 ): ExpertiseTierResult {
-  const { tradingType, tradingStyle, assetClasses, investmentPlan, maxLeverageTolerance, typicalPositionSizePct } = input;
+  const {
+    tradingType,
+    tradingStyle,
+    assetClasses,
+    investmentPlan,
+    maxLeverageTolerance,
+    typicalPositionSizePct,
+  } = input;
+
+  // Guard: treat any non-array value (undefined, null, or malformed input) as
+  // "no signal available" rather than throwing — matches this function's
+  // existing philosophy of degrading to insufficient_evidence rather than
+  // crashing on missing data (see maxLeverageTolerance/typicalPositionSizePct
+  // null-handling below, which already does this for the scalar fields).
+  const safeTradingType = Array.isArray(tradingType) ? tradingType : [];
+  const safeTradingStyle = Array.isArray(tradingStyle) ? tradingStyle : [];
+  const safeAssetClasses = Array.isArray(assetClasses) ? assetClasses : [];
+  const safeInvestmentPlan = Array.isArray(investmentPlan) ? investmentPlan : [];
 
   const signals: string[] = [];
   let advancedPoints = 0;
@@ -29,9 +46,9 @@ export function deriveExpertiseTier(
   let totalPoints = 0;
 
   // Signal 1: tradingType — advanced if FUTURES appears anywhere in the selection
-  if (tradingType.length > 0) {
+  if (safeTradingType.length > 0) {
     totalPoints++;
-    if (tradingType.includes('FUTURES')) {
+    if (safeTradingType.includes('FUTURES')) {
       advancedPoints++;
       signals.push('trading_type_includes_futures');
     } else {
@@ -41,10 +58,10 @@ export function deriveExpertiseTier(
   }
 
   // Signal 2: tradingStyle — advanced if SCALPING/INTRADAY appears anywhere
-  if (tradingStyle.length > 0) {
+  if (safeTradingStyle.length > 0) {
     totalPoints++;
-    const hasActiveStyle = tradingStyle.some((s) => s === 'SCALPING' || s === 'INTRADAY');
-    const onlyLongTerm = tradingStyle.every((s) => s === 'SHORT_TERM_INVESTMENT' || s === 'LONG_TERM_INVESTMENT');
+    const hasActiveStyle = safeTradingStyle.some((s) => s === 'SCALPING' || s === 'INTRADAY');
+    const onlyLongTerm = safeTradingStyle.every((s) => s === 'SHORT_TERM_INVESTMENT' || s === 'LONG_TERM_INVESTMENT');
     if (hasActiveStyle) {
       advancedPoints++;
       signals.push('trading_style_includes_active');
@@ -56,14 +73,14 @@ export function deriveExpertiseTier(
     }
   }
 
-  // Signal 3: assetClasses breadth (unchanged — was already an array)
-  if (assetClasses.length > 0) {
+  // Signal 3: assetClasses breadth
+  if (safeAssetClasses.length > 0) {
     totalPoints++;
-    const hasAdvancedClass = assetClasses.includes('CRYPTO') || assetClasses.includes('COMMODITIES');
-    if (assetClasses.length >= 3 || (assetClasses.length >= 2 && hasAdvancedClass)) {
+    const hasAdvancedClass = safeAssetClasses.includes('CRYPTO') || safeAssetClasses.includes('COMMODITIES');
+    if (safeAssetClasses.length >= 3 || (safeAssetClasses.length >= 2 && hasAdvancedClass)) {
       advancedPoints++;
       signals.push('asset_classes_broad');
-    } else if (assetClasses.length === 1 && assetClasses[0] === 'STOCKS') {
+    } else if (safeAssetClasses.length === 1 && safeAssetClasses[0] === 'STOCKS') {
       beginnerPoints++;
       signals.push('asset_classes_narrow_stocks_only');
     } else {
@@ -72,10 +89,10 @@ export function deriveExpertiseTier(
   }
 
   // Signal 4: investmentPlan — advanced if WEEKLY appears anywhere
-  if (investmentPlan.length > 0) {
+  if (safeInvestmentPlan.length > 0) {
     totalPoints++;
-    const onlyYearly = investmentPlan.every((p) => p === 'YEARLY');
-    if (investmentPlan.includes('WEEKLY')) {
+    const onlyYearly = safeInvestmentPlan.every((p) => p === 'YEARLY');
+    if (safeInvestmentPlan.includes('WEEKLY')) {
       advancedPoints++;
       signals.push('investment_plan_includes_weekly');
     } else if (onlyYearly) {
@@ -86,7 +103,7 @@ export function deriveExpertiseTier(
     }
   }
 
-  // Signal 5: leverage/position-sizing tolerance
+  // Signal 5 unchanged — already null-safe, not touched
   if (maxLeverageTolerance !== null || typicalPositionSizePct !== null) {
     totalPoints++;
     const highLeverage = maxLeverageTolerance !== null && maxLeverageTolerance >= 3;

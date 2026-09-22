@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { MarketDataProvider, PriceBarData } from './market-data-provider.interface';
+import { fetchWithBackoff } from './fetch-with-backoff.util';
+import { ApiBudgetTrackerService } from './api-budget-tracker.service';
 
 export interface AlphaVantageSentimentItem {
   title: string;
@@ -30,20 +32,46 @@ export class AlphaVantageAdapter implements MarketDataProvider {
   private readonly logger = new Logger(AlphaVantageAdapter.name);
   private readonly baseUrl = 'https://www.alphavantage.co/query';
 
+  constructor(private readonly budgetTracker: ApiBudgetTrackerService) {}
+
   private async fetchDaily(symbol: string): Promise<AlphaVantageDailyResponse | null> {
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
     if (!apiKey) {
       this.logger.error('ALPHA_VANTAGE_API_KEY is not set');
       return null;
     }
+
+    // Check budget before making the call
+    const budgetCheck = this.budgetTracker.checkBudget('ALPHA_VANTAGE');
+    if (!budgetCheck.allowed) {
+      this.logger.warn(
+        `Alpha Vantage budget exhausted, returning cached/unavailable for ${symbol}`,
+      );
+      // Try to return cached value if available
+      const cached = this.budgetTracker.getCachedValue('ALPHA_VANTAGE', `daily:${symbol}`);
+      if (cached) return cached;
+      return null;
+    }
+
     const url = `${this.baseUrl}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`Alpha Vantage returned ${response.status} for ${symbol}`);
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `Alpha Vantage daily data fetch for ${symbol}`,
+        },
+      );
       const data = (await response.json()) as AlphaVantageDailyResponse;
+      
+      // Record successful call and cache the result
+      this.budgetTracker.recordCall('ALPHA_VANTAGE');
+      this.budgetTracker.setCachedValue('ALPHA_VANTAGE', `daily:${symbol}`, data);
+      
       if (data.Note) {
         this.logger.warn(`Alpha Vantage rate limit hit: ${data.Note}`);
         return null;
@@ -91,14 +119,38 @@ export class AlphaVantageAdapter implements MarketDataProvider {
       this.logger.error('ALPHA_VANTAGE_API_KEY is not set');
       return null;
     }
+
+    // Check budget before making the call
+    const budgetCheck = this.budgetTracker.checkBudget('ALPHA_VANTAGE');
+    if (!budgetCheck.allowed) {
+      this.logger.warn(
+        `Alpha Vantage budget exhausted, returning cached/unavailable for ${symbol} sentiment`,
+      );
+      // Try to return cached value if available
+      const cached = this.budgetTracker.getCachedValue('ALPHA_VANTAGE', `sentiment:${symbol}`);
+      if (cached) return cached;
+      return null;
+    }
+
     const url = `${this.baseUrl}?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${apiKey}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        this.logger.warn(`Alpha Vantage NEWS_SENTIMENT returned ${response.status} for ${symbol}`);
-        return null;
-      }
+      const response = await fetchWithBackoff(
+        url,
+        {},
+        {
+          maxRetries: 3,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          logger: this.logger,
+          context: `Alpha Vantage NEWS_SENTIMENT fetch for ${symbol}`,
+        },
+      );
       const data = (await response.json()) as { feed?: AlphaVantageSentimentItem[]; Note?: string; Information?: string };
+      
+      // Record successful call and cache the result
+      this.budgetTracker.recordCall('ALPHA_VANTAGE');
+      this.budgetTracker.setCachedValue('ALPHA_VANTAGE', `sentiment:${symbol}`, data.feed);
+      
       if (data.Note || data.Information) {
         this.logger.warn(`Alpha Vantage rate limit or info message: ${data.Note ?? data.Information}`);
         return null;

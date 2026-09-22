@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { UserModule } from '../user/user.module'; // CONFIRM path matches profile.module.ts
-import { PrismaModule } from '../prisma/prisma.module'; // CONFIRM path matches profile.module.ts
-import { MarketDataModule } from '../market-data/market-data.module'; // CONFIRM exact name/path — check the file that exports MarketDataService
+import { UserModule } from '../user/user.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import { MarketDataModule } from '../market-data/market-data.module';
 import { WatchlistController } from './watchlist.controller';
 import { WatchlistService } from './watchlist.service';
 
