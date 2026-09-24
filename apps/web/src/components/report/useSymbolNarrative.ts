@@ -7,7 +7,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export function useSymbolNarrative() {
   const { getToken } = useAuth();
-  const [narrative, setNarrative] = useState<string | null>(null);
+  const [narrative, setNarrativeState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +27,7 @@ export function useSymbolNarrative() {
 
       const json = await res.json();
       const narrative = json.data?.narrative ?? "No narrative returned.";
-      setNarrative(narrative);
+      setNarrativeState(narrative);
 
       // Persist the narrative back onto the report-history entry this
       // report came from, when one exists. Skipped silently when
@@ -47,5 +47,9 @@ export function useSymbolNarrative() {
     }
   }
 
-  return { narrative, loading, error, generate };
+  function setNarrative(narrativeText: string | null) {
+    setNarrativeState(narrativeText);
+  }
+
+  return { narrative, loading, error, generate, setNarrative: setNarrative as (narrativeText: string | null) => void };
 }

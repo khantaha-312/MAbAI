@@ -40,7 +40,7 @@ export class ReportHistoryService {
     return this.prisma.reportHistoryEntry.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      select: { id: true, symbol: true, assetType: true, createdAt: true },
+      select: { id: true, symbol: true, assetType: true, snapshot: true, narrative: true, createdAt: true },
     });
   }
 
@@ -48,6 +48,7 @@ export class ReportHistoryService {
     const userId = await this.resolveUserId(clerkId);
     const entry = await this.prisma.reportHistoryEntry.findUnique({ where: { id } });
     if (!entry || entry.userId !== userId) throw new NotFoundException('Report not found');
+    // Return the full entry including snapshot and narrative
     return entry;
   }
 
@@ -55,9 +56,22 @@ export class ReportHistoryService {
     const userId = await this.resolveUserId(clerkId);
     const entry = await this.prisma.reportHistoryEntry.findUnique({ where: { id } });
     if (!entry || entry.userId !== userId) throw new NotFoundException('Report not found');
-    return this.prisma.reportHistoryEntry.update({
-      where: { id },
+    
+    // Guard: prevent overwriting an existing narrative with atomic check
+    const result = await this.prisma.reportHistoryEntry.updateMany({
+      where: { 
+        id,
+        narrative: null, // Only update if narrative is currently null
+      },
       data: { narrative },
     });
+    
+    // If no rows were updated, narrative already exists - return unchanged entry
+    if (result.count === 0) {
+      return entry;
+    }
+    
+    // Return the updated entry
+    return this.prisma.reportHistoryEntry.findUnique({ where: { id } });
   }
 }

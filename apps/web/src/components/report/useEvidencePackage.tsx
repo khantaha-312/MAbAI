@@ -145,19 +145,30 @@ export interface EvidencePackage {
   sources: string[];
 }
 
+export type { EvidencePackage };
+
 interface UseEvidencePackageResult {
   data: EvidencePackage | null;
   loading: boolean;
   error: string | null;
 }
 
+interface UseEvidencePackageOptions {
+  enabled?: boolean;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-export function useEvidencePackage(symbol: string, assetType: string): UseEvidencePackageResult {
+export function useEvidencePackage(
+  symbol: string, 
+  assetType: string, 
+  options?: UseEvidencePackageOptions
+): UseEvidencePackageResult {
   const { getToken } = useAuth();
   const [data, setData] = useState<EvidencePackage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const enabled = options?.enabled !== false; // Default to true
 
   useEffect(() => {
     let cancelled = false;
@@ -190,11 +201,17 @@ export function useEvidencePackage(symbol: string, assetType: string): UseEviden
       }
     }
 
-    if (symbol && assetType) fetchEvidence();
+    if (enabled && symbol && assetType) {
+      fetchEvidence();
+    } else {
+      // When disabled, set loading to false immediately
+      setLoading(false);
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [symbol, assetType, getToken]);
+  }, [symbol, assetType, getToken, enabled]);
 
   return { data, loading, error };
 }

@@ -8,6 +8,7 @@ import ReportAnalysis from "@/components/report/report-analysis";
 import AiMarketAssistant from "@/components/report/ai-market-assistant";
 import Sidebar from "@/components/layout/sidebar";
 import { useApiClient } from "@/lib/api-client";
+import type { EvidencePackage } from "@/components/report/useEvidencePackage";
 
 // Maps the filter dropdown's display labels (from performance-filters.tsx's
 // "Asset Class Filter" select) to the backend's real assetType strings used
@@ -52,6 +53,8 @@ function ReportsPageContent() {
   // ('equity' | 'crypto' | 'forex' | 'metal' | 'oil') overrides the
   // dropdown-derived default passed to ReportAnalysis.
   const [entryAssetType, setEntryAssetType] = useState<string | null>(null);
+  const [entrySnapshot, setEntrySnapshot] = useState<EvidencePackage | null>(null);
+  const [entryNarrative, setEntryNarrative] = useState<string | null>(null);
   const [isLoadingEntry, setIsLoadingEntry] = useState(false);
 
   // Load the report-history entry on mount and derive symbol/assetType
@@ -63,11 +66,13 @@ function ReportsPageContent() {
     if (reportHistoryId) {
       // Load specific report by ID
       api
-        .get<{ symbol: string; assetType: string }>(`/report-history/${reportHistoryId}`)
+        .get<{ symbol: string; assetType: string; snapshot: EvidencePackage | null; narrative: string | null }>(`/report-history/${reportHistoryId}`)
         .then((entry) => {
           if (!cancelled && entry.symbol && entry.assetType) {
             setSymbol(entry.symbol);
             setEntryAssetType(entry.assetType);
+            setEntrySnapshot(entry.snapshot ?? null);
+            setEntryNarrative(entry.narrative ?? null);
           }
         })
         .catch(() => {
@@ -79,12 +84,14 @@ function ReportsPageContent() {
     } else {
       // No ?id= param - fetch latest report from history
       api
-        .get<Array<{ id: string; symbol: string; assetType: string }>>('/report-history')
+        .get<Array<{ id: string; symbol: string; assetType: string; snapshot: EvidencePackage | null; narrative: string | null }>>('/report-history')
         .then((entries) => {
           if (!cancelled && entries && entries.length > 0) {
             const latest = entries[0]; // Most recent (ordered by createdAt desc)
             setSymbol(latest.symbol);
             setEntryAssetType(latest.assetType);
+            setEntrySnapshot(latest.snapshot ?? null);
+            setEntryNarrative(latest.narrative ?? null);
           }
         })
         .catch(() => {
@@ -136,12 +143,14 @@ function ReportsPageContent() {
                 <ReportAnalysis
                   startDate={startDate}
                   endDate={endDate}
-                  setStartDate={setStartDate}
-                  setEndDate={setEndDate}
+                  setStartDateAction={setStartDate}
+                  setEndDateAction={setEndDate}
                   assetClass={entryAssetType ?? toBackendAssetType(assetClass)}
-                  setAssetClass={setAssetClass}
+                  setAssetClassAction={setAssetClass}
                   symbol={symbol}
                   reportHistoryId={reportHistoryId ?? undefined}
+                  historicalSnapshot={entrySnapshot}
+                  historicalNarrative={entryNarrative}
                 />
               </div>
 

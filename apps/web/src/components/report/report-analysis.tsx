@@ -9,7 +9,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useEvidencePackage, type SentimentData } from "./useEvidencePackage";
+import { useEvidencePackage, type SentimentData, type EvidencePackage } from "./useEvidencePackage";
 import { useMacroSnapshot } from "./useMacroSnapshot";
 import { useSymbolNarrative } from "./useSymbolNarrative";
 import { NewsArticle } from "shared-types";
@@ -49,6 +49,8 @@ type ReportAnalysisProps = {
 
   symbol: string;
   reportHistoryId?: string;
+  historicalSnapshot?: EvidencePackage | null;
+  historicalNarrative?: string | null;
 };
 
 export default function ReportAnalysis({
@@ -60,16 +62,43 @@ export default function ReportAnalysis({
   setAssetClassAction,
   symbol,
   reportHistoryId,
+  historicalSnapshot,
+  historicalNarrative,
 }: ReportAnalysisProps) {
-  const { data, loading, error } = useEvidencePackage(symbol, assetClass);
+  // Determine if this is a historical report with stored snapshot
+  const isHistoricalReport = historicalSnapshot !== null && historicalSnapshot !== undefined;
+  
+  // Call evidence hook unconditionally, but disable for historical reports
+  const { data: freshData, loading: freshLoading, error: freshError } = useEvidencePackage(
+    symbol, 
+    assetClass, 
+    { enabled: !isHistoricalReport }
+  );
   const { data: macro, loading: macroLoading, error: macroError } = useMacroSnapshot();
   const narrativeState = useSymbolNarrative();
+
+  // For historical reports with stored snapshot, use it instead of fresh evidence
+  const data = isHistoricalReport ? historicalSnapshot : freshData;
+  const loading = isHistoricalReport ? false : freshLoading;
+  const error = isHistoricalReport ? null : freshError;
 
   // Track the last symbol/assetClass combo to prevent duplicate generation calls
   const lastGenerationKey = useRef<string | null>(null);
 
-  // Auto-generate narrative when symbol/assetClass changes
+  // For historical reports with stored narrative, use it directly without AI generation
   useEffect(() => {
+    if (historicalNarrative) {
+      narrativeState.setNarrative(historicalNarrative);
+    }
+  }, [historicalNarrative, narrativeState]);
+
+  // Auto-generate narrative when symbol/assetClass changes (only for live reports)
+  useEffect(() => {
+    // Skip AI generation for historical reports with stored narrative
+    if (isHistoricalReport || historicalNarrative) {
+      return;
+    }
+
     if (symbol && assetClass && data) {
       const generationKey = `${symbol}-${assetClass}`;
       
@@ -79,7 +108,7 @@ export default function ReportAnalysis({
         narrativeState.generate(symbol, assetClass, reportHistoryId);
       }
     }
-  }, [symbol, assetClass, data, narrativeState, reportHistoryId]);
+  }, [symbol, assetClass, data, narrativeState, reportHistoryId, isHistoricalReport, historicalNarrative]);
 
   if (loading && symbol && assetClass) {
     return <div className="p-6 text-sm text-slate-400">Loading report…</div>;
