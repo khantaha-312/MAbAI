@@ -66,9 +66,9 @@ export class ReportHistoryService {
       data: { narrative },
     });
     
-    // If no rows were updated, narrative already exists - return unchanged entry
+    // If no rows were updated, narrative already exists - re-fetch current entry
     if (result.count === 0) {
-      return entry;
+      return this.prisma.reportHistoryEntry.findUnique({ where: { id } });
     }
     
     // Return the updated entry

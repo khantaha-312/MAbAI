@@ -84,10 +84,12 @@ describe('ReportHistoryService', () => {
         },
         data: { narrative: narrative },
       });
+      // Should call findUnique twice (initial check + re-fetch after update)
+      expect(mockPrismaService.reportHistoryEntry.findUnique).toHaveBeenCalledTimes(2);
       expect(result.narrative).toBe(narrative);
     });
 
-    it('should NOT overwrite existing narrative and return entry unchanged', async () => {
+    it('should NOT overwrite existing narrative and return current entry after re-fetch', async () => {
       const clerkId = 'clerk123';
       const id = 'entry123';
       const existingNarrative = 'Existing narrative';
@@ -101,9 +103,15 @@ describe('ReportHistoryService', () => {
         snapshot: {},
         createdAt: new Date(),
       };
+      const currentEntry = {
+        ...mockEntry,
+        narrative: existingNarrative, // Current DB state
+      };
 
       mockPrismaService.user.findUnique.mockResolvedValue({ id: 'user123' });
-      mockPrismaService.reportHistoryEntry.findUnique.mockResolvedValue(mockEntry);
+      mockPrismaService.reportHistoryEntry.findUnique
+        .mockResolvedValueOnce(mockEntry)
+        .mockResolvedValueOnce(currentEntry);
       mockPrismaService.reportHistoryEntry.updateMany.mockResolvedValue({ count: 0 });
 
       const result = await service.attachNarrative(clerkId, id, newNarrative);
@@ -116,7 +124,9 @@ describe('ReportHistoryService', () => {
         },
         data: { narrative: newNarrative },
       });
-      // Should return the existing entry with original narrative
+      // Should re-fetch the current entry when count=0
+      expect(mockPrismaService.reportHistoryEntry.findUnique).toHaveBeenCalledTimes(2);
+      // Should return the current entry with original narrative
       expect(result.narrative).toBe(existingNarrative);
       expect(result.narrative).not.toBe(newNarrative);
     });

@@ -51,6 +51,7 @@ type ReportAnalysisProps = {
   reportHistoryId?: string;
   historicalSnapshot?: EvidencePackage | null;
   historicalNarrative?: string | null;
+  justCreated?: boolean;
 };
 
 export default function ReportAnalysis({
@@ -64,6 +65,7 @@ export default function ReportAnalysis({
   reportHistoryId,
   historicalSnapshot,
   historicalNarrative,
+  justCreated,
 }: ReportAnalysisProps) {
   // Determine if this is a historical report with stored snapshot
   const isHistoricalReport = historicalSnapshot !== null && historicalSnapshot !== undefined;
@@ -92,10 +94,13 @@ export default function ReportAnalysis({
     }
   }, [historicalNarrative, narrativeState]);
 
-  // Auto-generate narrative when symbol/assetClass changes (only for live reports)
+  // Auto-generate narrative when symbol/assetClass changes (only for newly-created reports without narrative)
   useEffect(() => {
-    // Skip AI generation for historical reports with stored narrative
-    if (isHistoricalReport || historicalNarrative) {
+    // Generation is only permitted for newly-created reports without existing narrative
+    // The presence of a narrative (whether from storage or AI generation) blocks generation
+    // This is separate from rendering logic - historicalSnapshot controls rendering, 
+    // but justCreated + narrative state controls generation permission
+    if (!justCreated || narrativeState.narrative) {
       return;
     }
 
@@ -103,12 +108,12 @@ export default function ReportAnalysis({
       const generationKey = `${symbol}-${assetClass}`;
       
       // Only generate if this is a new symbol/assetType combo (prevent double-firing)
-      if (lastGenerationKey.current !== generationKey && !narrativeState.narrative) {
+      if (lastGenerationKey.current !== generationKey) {
         lastGenerationKey.current = generationKey;
         narrativeState.generate(symbol, assetClass, reportHistoryId);
       }
     }
-  }, [symbol, assetClass, data, narrativeState, reportHistoryId, isHistoricalReport, historicalNarrative]);
+  }, [symbol, assetClass, data, narrativeState, reportHistoryId, justCreated]);
 
   if (loading && symbol && assetClass) {
     return <div className="p-6 text-sm text-slate-400">Loading report…</div>;

@@ -159,7 +159,7 @@ export default function MarketsPage() {
           api.post<{ id: string }>("/report-history/generate", { symbol: instrument.symbol, assetType: instrument.assetType, ...sharedConfig })
         )
       );
-      router.push(`/onboarding/report?id=${created[0].id}`);
+      router.push(`/onboarding/report?id=${created[0].id}&justCreated=true`);
     } catch (err: any) {
       setSubmitError(err?.message ?? "Could not generate report. Please check your answers and try again.");
     } finally {

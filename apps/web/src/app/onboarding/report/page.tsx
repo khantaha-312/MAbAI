@@ -38,6 +38,7 @@ function ReportsPageContent() {
   // the New Report form. Absent on direct visits, in which case the
   // hardcoded fallbacks below stay in effect.
   const reportHistoryId = searchParams.get("id");
+  const justCreated = searchParams.get("justCreated") === "true";
   const api = useApiClient();
 
   // Shared state maintained for Reports History
@@ -151,6 +152,7 @@ function ReportsPageContent() {
                   reportHistoryId={reportHistoryId ?? undefined}
                   historicalSnapshot={entrySnapshot}
                   historicalNarrative={entryNarrative}
+                  justCreated={justCreated}
                 />
               </div>
 
