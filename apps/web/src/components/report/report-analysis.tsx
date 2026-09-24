@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react";
 import { useEvidencePackage, type SentimentData } from "./useEvidencePackage";
 import { useMacroSnapshot } from "./useMacroSnapshot";
 import { useSymbolNarrative } from "./useSymbolNarrative";
+import { NewsArticle } from "shared-types";
 
 type SectionKey = 'technical' | 'fundamental' | 'macro' | 'news' | 'sentiment';
 
@@ -33,12 +34,6 @@ interface TechnicalData {
       evidenceCount: number;
     };
   };
-}
-
-interface NewsArticle {
-  headline: string;
-  source: string;
-  timestamp: string | number | Date;
 }
 
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { NewsArticle } from "shared-types";
 
 export interface RsiResult {
   rsi: number | null;

@@ -1,13 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MarketDataService } from '../market-data/market-data.service';
-
-export interface NewsArticle {
-  headline: string;
-  source: string;
-  timestamp: string;
-  url: string;
-  summary: string;
-}
+import { NewsArticle } from 'shared-types';
 
 export interface NewsSentimentResult {
   available: boolean;
