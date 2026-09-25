@@ -97,10 +97,9 @@ export default function ReportAnalysis({
   // Auto-generate narrative when symbol/assetClass changes (only for newly-created reports without narrative)
   useEffect(() => {
     // Generation is only permitted for newly-created reports without existing narrative
-    // The presence of a narrative (whether from storage or AI generation) blocks generation
-    // This is separate from rendering logic - historicalSnapshot controls rendering, 
-    // but justCreated + narrative state controls generation permission
-    if (!justCreated || narrativeState.narrative) {
+    // Check BOTH the synchronously available server-fetched historicalNarrative AND local state
+    // This prevents race conditions where historicalNarrative exists but local state hasn't updated yet
+    if (!justCreated || historicalNarrative || narrativeState.narrative) {
       return;
     }
 
@@ -113,7 +112,7 @@ export default function ReportAnalysis({
         narrativeState.generate(symbol, assetClass, reportHistoryId);
       }
     }
-  }, [symbol, assetClass, data, narrativeState, reportHistoryId, justCreated]);
+  }, [symbol, assetClass, data, narrativeState, reportHistoryId, justCreated, historicalNarrative]);
 
   if (loading && symbol && assetClass) {
     return <div className="p-6 text-sm text-slate-400">Loading report…</div>;
