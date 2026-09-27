@@ -64,20 +64,26 @@ export class PredictionLedgerService {
   }
 
   // The ONLY method permitted to write to a LedgerEntry after creation.
-  // Enforces single-resolution (throws if status !== 'pending').
+  // Conditional update: only pending entries may be resolved; concurrent
+  // attempts race safely and already-resolved entries are never overwritten.
   async resolve(id: string, userId: string, dto: ResolveLedgerEntryDto): Promise<LedgerEntry> {
-    const entry = await this.findOwnedOrThrow(id, userId);
-    if (entry.status !== 'pending') {
-      throw new AppException(
-        ErrorCode.LEDGER_ENTRY_ALREADY_RESOLVED,
-        'This ledger entry has already been resolved',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    return this.prisma.ledgerEntry.update({
-      where: { id },
-      data: { status: 'resolved', outcome: dto.outcome, actualData: dto.actualData as object, resolvedAt: new Date() },
+    await this.findOwnedOrThrow(id, userId);
+
+    await this.prisma.ledgerEntry.updateMany({
+      where: {
+        id,
+        status: 'pending',
+      },
+      data: {
+        status: 'resolved',
+        outcome: dto.outcome,
+        actualData: dto.actualData as object,
+        resolvedAt: new Date(),
+      },
     });
+
+    // Re-fetch whether we won the race or another resolver already wrote.
+    return this.prisma.ledgerEntry.findUniqueOrThrow({ where: { id } });
   }
 
   // --- new methods added for the win-rate feature ---
