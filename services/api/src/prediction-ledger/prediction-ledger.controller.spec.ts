@@ -56,7 +56,7 @@ describe('PredictionLedgerController', () => {
 
   it('keeps GET /ledger-entries/win-rate', async () => {
     const routes = getRoutes(controller);
-    expect(routes).toContainEqual({ path: '/win-rate', method: RequestMethod.GET });
+    expect(routes).toContainEqual({ path: 'win-rate', method: RequestMethod.GET });
 
     const winRate = { status: 'insufficient_data', totalPredictions: 0, pendingCount: 0, resolvedCount: 0, minimumRequired: 10 };
     ledgerService.getWinRate.mockResolvedValue(winRate);
