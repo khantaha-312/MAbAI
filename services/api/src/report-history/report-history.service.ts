@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EvidencePackageService } from '../evidence-package/evidence-package.service';
 import { GenerateReportDto } from './dto/generate-report.dto';
@@ -6,6 +6,8 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ReportHistoryService {
+  private readonly logger = new Logger(ReportHistoryService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly evidencePackageService: EvidencePackageService,
@@ -21,7 +23,7 @@ export class ReportHistoryService {
     const userId = await this.resolveUserId(clerkId);
     const snapshot = await this.evidencePackageService.buildEvidencePackage(dto.symbol, dto.assetType);
 
-    return this.prisma.reportHistoryEntry.create({
+    const reportEntry = await this.prisma.reportHistoryEntry.create({
       data: {
         userId,
         symbol: dto.symbol,
@@ -33,6 +35,48 @@ export class ReportHistoryService {
         investmentPlan: dto.investmentPlan ?? [],
       },
     });
+
+    // Create Prediction Ledger entry for single-symbol reports
+    // Extract trend direction and reference price from the snapshot
+    const technical = snapshot.technical?.available ? snapshot.technical.data : null;
+    const market = snapshot.market?.available ? snapshot.market.data : null;
+    
+    if (technical && market) {
+      // Safely extract trend direction with type guard
+      const trendData = technical as any;
+      const trendDirection = trendData?.trend?.direction as 'bullish' | 'bearish' | undefined;
+      const referencePrice = market.price;
+
+      // Only create ledger entry if we have a clear directional prediction
+      if (trendDirection === 'bullish' || trendDirection === 'bearish') {
+        try {
+          // Create ledger entry directly via Prisma to avoid circular dependency
+          await this.prisma.ledgerEntry.create({
+            data: {
+              userId,
+              inputSnapshot: {
+                reportHistoryId: reportEntry.id,
+                symbol: dto.symbol,
+                assetType: dto.assetType,
+                trendDirection,
+                referencePrice,
+                createdAt: reportEntry.createdAt,
+              } as Prisma.InputJsonValue,
+              generatedOutput: {} as Prisma.InputJsonValue,
+              modelProvider: 'internal',
+              modelName: 'single-symbol-prediction',
+              status: 'pending',
+            },
+          });
+          this.logger.log(`Created prediction ledger entry for ${dto.symbol} (${trendDirection})`);
+        } catch (error) {
+          this.logger.error(`Failed to create prediction ledger entry for ${dto.symbol}: ${error}`);
+          // Don't fail the report creation if ledger creation fails
+        }
+      }
+    }
+
+    return reportEntry;
   }
 
   async listForUser(clerkId: string) {
