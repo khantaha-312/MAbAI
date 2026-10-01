@@ -107,13 +107,18 @@ export class PredictionLedgerService {
   /**
    * Find pending single-symbol prediction entries from ReportHistory
    * that are old enough for resolution.
+   * Filtered by presence of reportHistoryId in inputSnapshot instead of modelName
+   * to support the new modelName pattern 'trend-indicator-{bars}bars'.
    */
   async findPendingReportPredictionsOlderThan(cutoff: Date): Promise<LedgerEntry[]> {
     return this.prisma.ledgerEntry.findMany({
-      where: { 
-        status: 'pending', 
+      where: {
+        status: 'pending',
         createdAt: { lt: cutoff },
-        modelName: 'single-symbol-prediction',
+        inputSnapshot: {
+          path: ['reportHistoryId'],
+          not: null,
+        },
       },
     });
   }

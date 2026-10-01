@@ -1,9 +1,11 @@
-import { Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Param, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { MarketDataService } from './market-data.service';
 
 type AssetClass = 'crypto' | 'equity' | 'forex' | 'metal' | 'oil';
 
 @Controller('market-data')
+@UseGuards(ClerkAuthGuard)
 export class MarketDataController {
   constructor(private readonly marketDataService: MarketDataService) {}
 

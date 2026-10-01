@@ -10,6 +10,8 @@ import { FrankfurterAdapter } from './frankfurter.adapter';
 import {BinanceAdapter} from './binance.adapter';
 import { MarketDataCacheService } from './market-data-cache.service';
 import { ApiBudgetTrackerService } from './api-budget-tracker.service';
+import { ClerkAuthModule } from '../auth/clerk-auth.module';
+import { UserModule } from '../user/user.module';
 
 
 import {
@@ -23,6 +25,7 @@ import {
 } from './market-data-provider.interface';
 
 @Module({
+  imports: [ClerkAuthModule, UserModule],
   controllers: [MarketDataController],
   providers: [
     CoinGeckoAdapter,

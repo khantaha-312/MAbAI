@@ -10,14 +10,14 @@ export class PriceBarController {
   @Post('backfill/equity/:symbol')
   async backfillEquity(@Param('symbol') symbol: string, @Query('days') days?: string) {
     const dayCount = days ? parseInt(days, 10) : 30;
-    const result = await this.priceBarService.backfillEquityHistory(symbol, dayCount);
+    const result = await this.priceBarService.ensureHistory(symbol, 'equity', dayCount);
     return { data: result };
   }
 
   @Post('backfill/crypto/:coinId')
   async backfillCrypto(@Param('coinId') coinId: string, @Query('days') days?: string) {
     const dayCount = days ? parseInt(days, 10) : 30;
-    const result = await this.priceBarService.backfillCryptoHistory(coinId, dayCount);
+    const result = await this.priceBarService.ensureHistory(coinId, 'crypto', dayCount);
     return { data: result };
   }
 }

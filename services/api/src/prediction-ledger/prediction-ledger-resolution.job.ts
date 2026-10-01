@@ -76,10 +76,11 @@ export class PredictionLedgerResolutionJob {
 
     for (const entry of portfolioCandidates) {
       // Skip single-symbol predictions (handled separately)
-      if (entry.modelName === 'single-symbol-prediction') {
+      const snapshot = entry.inputSnapshot as unknown as { reportHistoryId?: string };
+      if (snapshot.reportHistoryId) {
         continue;
       }
-      
+
       const result = await this.resolveOne(entry);
       if (result.resolved) portfolioResolved++;
       else portfolioSkipped++;

@@ -40,35 +40,59 @@ export class ReportHistoryService {
     // Extract trend direction and reference price from the snapshot
     const technical = snapshot.technical?.available ? snapshot.technical.data : null;
     const market = snapshot.market?.available ? snapshot.market.data : null;
-    
+
     if (technical && market) {
       // Safely extract trend direction with type guard
       const trendData = technical as any;
-      const trendDirection = trendData?.trend?.direction as 'bullish' | 'bearish' | undefined;
+      const trendDirection = trendData?.trend?.trend?.direction as 'bullish' | 'bearish' | undefined;
       const referencePrice = market.price;
 
       // Only create ledger entry if we have a clear directional prediction
       if (trendDirection === 'bullish' || trendDirection === 'bearish') {
         try {
-          // Create ledger entry directly via Prisma to avoid circular dependency
-          await this.prisma.ledgerEntry.create({
-            data: {
+          // Prevent duplicate ledger entries for the same report
+          const existingEntry = await this.prisma.ledgerEntry.findFirst({
+            where: {
               userId,
               inputSnapshot: {
-                reportHistoryId: reportEntry.id,
-                symbol: dto.symbol,
-                assetType: dto.assetType,
-                trendDirection,
-                referencePrice,
-                createdAt: reportEntry.createdAt,
-              } as Prisma.InputJsonValue,
-              generatedOutput: {} as Prisma.InputJsonValue,
-              modelProvider: 'internal',
-              modelName: 'single-symbol-prediction',
-              status: 'pending',
+                path: ['reportHistoryId'],
+                equals: reportEntry.id,
+              },
             },
           });
-          this.logger.log(`Created prediction ledger entry for ${dto.symbol} (${trendDirection})`);
+
+          if (existingEntry) {
+            this.logger.log(`Ledger entry already exists for report ${reportEntry.id}, skipping creation`);
+          } else {
+            // Create ledger entry directly via Prisma to avoid circular dependency
+            await this.prisma.ledgerEntry.create({
+              data: {
+                userId,
+                inputSnapshot: {
+                  reportHistoryId: reportEntry.id,
+                  symbol: dto.symbol,
+                  assetType: dto.assetType,
+                  trendDirection,
+                  referencePrice,
+                  createdAt: reportEntry.createdAt,
+                  barsUsed: technical.barsUsed,
+                } as Prisma.InputJsonValue,
+                generatedOutput: {
+                  trendDirection,
+                  referencePrice,
+                  technicalIndicators: {
+                    rsi: technical.rsi?.rsi,
+                    macd: technical.macd?.macd,
+                    sma: technical.sma?.sma,
+                  },
+                } as Prisma.InputJsonValue,
+                modelProvider: 'technical-analysis',
+                modelName: `trend-indicator-${technical.barsUsed}bars`,
+                status: 'pending',
+              },
+            });
+            this.logger.log(`Created prediction ledger entry for ${dto.symbol} (${trendDirection})`);
+          }
         } catch (error) {
           this.logger.error(`Failed to create prediction ledger entry for ${dto.symbol}: ${error}`);
           // Don't fail the report creation if ledger creation fails
