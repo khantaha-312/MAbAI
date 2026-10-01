@@ -269,7 +269,7 @@ describe('ReportHistoryService - Prediction Ledger Integration', () => {
       expect(mockPrisma.ledgerEntry.create).not.toHaveBeenCalled();
     });
 
-    it('prevents duplicate ledger entry creation for same report', async () => {
+    it('prevents duplicate pending ledger entry for same symbol/day/direction', async () => {
       const dto: GenerateReportDto = {
         symbol: 'AAPL',
         assetType: 'equity',
@@ -309,13 +309,120 @@ describe('ReportHistoryService - Prediction Ledger Integration', () => {
       expect(mockPrisma.ledgerEntry.findFirst).toHaveBeenCalledWith({
         where: {
           userId: mockUserId,
-          inputSnapshot: {
-            path: ['reportHistoryId'],
-            equals: mockReportEntry.id,
+          status: 'pending',
+          createdAt: {
+            gte: expect.any(Date),
+            lte: expect.any(Date),
           },
+          inputSnapshot: {
+            path: ['symbol'],
+            equals: 'AAPL',
+          },
+          AND: [
+            {
+              inputSnapshot: {
+                path: ['assetType'],
+                equals: 'equity',
+              },
+            },
+            {
+              inputSnapshot: {
+                path: ['trendDirection'],
+                equals: 'bullish',
+              },
+            },
+            {
+              inputSnapshot: {
+                path: ['reportHistoryId'],
+                not: expect.any(Object), // Prisma.DbNull
+              },
+            },
+          ],
         },
       });
       expect(mockPrisma.ledgerEntry.create).not.toHaveBeenCalled();
+    });
+
+    it('allows new prediction for same symbol on different day', async () => {
+      const dto: GenerateReportDto = {
+        symbol: 'AAPL',
+        assetType: 'equity',
+        tradingType: ['day'],
+        tradingStyle: ['momentum'],
+      };
+
+      const mockSnapshot = {
+        technical: {
+          available: true,
+          data: {
+            trend: {
+              trend: {
+                direction: 'bullish',
+                strength: 0.8,
+                signals: ['price_above_sma_50'],
+                evidenceCount: 3,
+              },
+            },
+            barsUsed: 100,
+          },
+        },
+        market: {
+          available: true,
+          data: {
+            price: 155.5,
+            assetType: 'equity',
+          },
+        },
+      };
+
+      mockEvidencePackageService.buildEvidencePackage.mockResolvedValue(mockSnapshot);
+      mockPrisma.ledgerEntry.findFirst.mockResolvedValue(null); // No existing entry today
+      mockPrisma.ledgerEntry.create.mockResolvedValue({ id: 'ledger-1' });
+
+      await service.generate('clerk-1', dto);
+
+      expect(mockPrisma.ledgerEntry.create).toHaveBeenCalled();
+    });
+
+    it('allows new prediction for same symbol with different direction', async () => {
+      const dto: GenerateReportDto = {
+        symbol: 'AAPL',
+        assetType: 'equity',
+        tradingType: ['day'],
+        tradingStyle: ['momentum'],
+      };
+
+      const mockSnapshot = {
+        technical: {
+          available: true,
+          data: {
+            trend: {
+              trend: {
+                direction: 'bearish',
+                strength: 0.7,
+                signals: ['price_below_sma_50'],
+                evidenceCount: 3,
+              },
+            },
+            barsUsed: 100,
+          },
+        },
+        market: {
+          available: true,
+          data: {
+            price: 145.5,
+            assetType: 'equity',
+          },
+        },
+      };
+
+      mockEvidencePackageService.buildEvidencePackage.mockResolvedValue(mockSnapshot);
+      mockPrisma.ledgerEntry.findFirst.mockResolvedValue(null); // No existing bearish entry today
+      mockPrisma.ledgerEntry.create.mockResolvedValue({ id: 'ledger-1' });
+
+      await service.generate('clerk-1', dto);
+
+      expect(mockPrisma.ledgerEntry.create).toHaveBeenCalled();
     });
 
     it('does not create ledger entry when technical data is unavailable', async () => {

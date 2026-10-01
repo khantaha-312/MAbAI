@@ -4,6 +4,20 @@ import { EvidencePackageService } from '../evidence-package/evidence-package.ser
 import { GenerateReportDto } from './dto/generate-report.dto';
 import { Prisma } from '@prisma/client';
 
+interface TechnicalData {
+  trend?: {
+    trend?: {
+      direction?: 'bullish' | 'bearish' | 'mixed' | 'insufficient_evidence';
+      strength?: number | null;
+      evidenceCount?: number;
+    };
+  };
+  barsUsed?: number;
+  rsi?: { rsi?: number | null };
+  macd?: { macd?: any };
+  sma?: { sma?: Record<number, number | null> };
+}
+
 @Injectable()
 export class ReportHistoryService {
   private readonly logger = new Logger(ReportHistoryService.name);
@@ -43,26 +57,59 @@ export class ReportHistoryService {
 
     if (technical && market) {
       // Safely extract trend direction with type guard
-      const trendData = technical as any;
+      const trendData = technical as TechnicalData;
       const trendDirection = trendData?.trend?.trend?.direction as 'bullish' | 'bearish' | undefined;
       const referencePrice = market.price;
 
       // Only create ledger entry if we have a clear directional prediction
       if (trendDirection === 'bullish' || trendDirection === 'bearish') {
         try {
-          // Prevent duplicate ledger entries for the same report
-          const existingEntry = await this.prisma.ledgerEntry.findFirst({
+          // Real duplicate prevention: check for existing PENDING single-symbol prediction
+          // for the same user + symbol + assetType + direction within the same day
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const todayEnd = new Date();
+          todayEnd.setHours(23, 59, 59, 999);
+
+          const existingPendingEntry = await this.prisma.ledgerEntry.findFirst({
             where: {
               userId,
-              inputSnapshot: {
-                path: ['reportHistoryId'],
-                equals: reportEntry.id,
+              status: 'pending',
+              createdAt: {
+                gte: todayStart,
+                lte: todayEnd,
               },
+              inputSnapshot: {
+                path: ['symbol'],
+                equals: dto.symbol,
+              },
+              AND: [
+                {
+                  inputSnapshot: {
+                    path: ['assetType'],
+                    equals: dto.assetType,
+                  },
+                },
+                {
+                  inputSnapshot: {
+                    path: ['trendDirection'],
+                    equals: trendDirection,
+                  },
+                },
+                {
+                  inputSnapshot: {
+                    path: ['reportHistoryId'],
+                    not: Prisma.DbNull,
+                  },
+                },
+              ],
             },
           });
 
-          if (existingEntry) {
-            this.logger.log(`Ledger entry already exists for report ${reportEntry.id}, skipping creation`);
+          if (existingPendingEntry) {
+            this.logger.log(
+              `Pending ledger entry already exists for ${dto.symbol} (${dto.assetType}, ${trendDirection}) today, skipping creation`
+            );
           } else {
             // Create ledger entry directly via Prisma to avoid circular dependency
             await this.prisma.ledgerEntry.create({
@@ -75,19 +122,19 @@ export class ReportHistoryService {
                   trendDirection,
                   referencePrice,
                   createdAt: reportEntry.createdAt,
-                  barsUsed: technical.barsUsed,
+                  barsUsed: trendData.barsUsed,
                 } as Prisma.InputJsonValue,
                 generatedOutput: {
                   trendDirection,
                   referencePrice,
                   technicalIndicators: {
-                    rsi: technical.rsi?.rsi,
-                    macd: technical.macd?.macd,
-                    sma: technical.sma?.sma,
+                    rsi: trendData.rsi?.rsi,
+                    macd: trendData.macd?.macd,
+                    sma: trendData.sma?.sma,
                   },
                 } as Prisma.InputJsonValue,
                 modelProvider: 'technical-analysis',
-                modelName: `trend-indicator-${technical.barsUsed}bars`,
+                modelName: `trend-indicator-${trendData.barsUsed}bars`,
                 status: 'pending',
               },
             });

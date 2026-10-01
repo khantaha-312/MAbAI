@@ -6,6 +6,7 @@ import { ResolveLedgerEntryDto } from './dto/resolve-ledger-entry.dto';
 import { AppException } from '../shared/exceptions/app.exception';
 import { ErrorCode } from '../shared/errors/error-code';
 import { HttpStatus } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 export type WinRateOutcome = 'correct' | 'incorrect' | 'partial';
 
@@ -117,7 +118,7 @@ export class PredictionLedgerService {
         createdAt: { lt: cutoff },
         inputSnapshot: {
           path: ['reportHistoryId'],
-          not: null,
+          not: Prisma.DbNull,
         },
       },
     });

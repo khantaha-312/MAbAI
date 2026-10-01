@@ -28,6 +28,11 @@ export class ModelProviderService {
   } | null> {
     const maxTokens = options?.maxTokens ?? 2048;
 
+    // Check if Anthropic API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      this.logger.warn('ANTHROPIC_API_KEY is not set, skipping Anthropic');
+    }
+
     // Primary: Anthropic. If this fails for ANY reason (including the known
     // hackathon credit issue), fall back to Gemini rather than failing the
     // whole request — this is a TEMPORARY measure while credit is pending,
@@ -46,7 +51,8 @@ export class ModelProviderService {
       }
       this.logger.warn('Anthropic returned no text block, falling back to Gemini');
     } catch (error) {
-      this.logger.warn(`Anthropic API call failed, falling back to Gemini: ${error}`);
+      const err = error as Error;
+      this.logger.warn(`Anthropic API call failed, falling back to Gemini: ${err.message} (${err.name})`);
     }
 
     // --- Fallback: Gemini ---
@@ -62,7 +68,8 @@ export class ModelProviderService {
         modelName: geminiResult.modelName,
       };
     } catch (error) {
-      this.logger.error('Both Anthropic and Gemini failed', error);
+      const err = error as Error;
+      this.logger.error(`Both Anthropic and Gemini failed. Last error: ${err.message} (${err.name})`, error);
       return null;
     }
   }
