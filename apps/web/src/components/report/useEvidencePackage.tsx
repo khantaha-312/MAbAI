@@ -145,8 +145,6 @@ export interface EvidencePackage {
   sources: string[];
 }
 
-export type { EvidencePackage };
-
 interface UseEvidencePackageResult {
   data: EvidencePackage | null;
   loading: boolean;

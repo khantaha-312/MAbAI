@@ -23,7 +23,10 @@
     "prisma:generate": "dotenv -e ../../.env -- prisma generate",
     "prisma:studio": "dotenv -e ../../.env -- prisma studio",
     "test:ledger": "dotenv -e ../../.env -- tsx scripts/test-ledger.ts",
-    "test:consolidation": "dotenv -e ../../.env -- node -r tsconfig-paths/register -r ts-node/register scripts/run-consolidation.ts"
+    "test:consolidation": "dotenv -e ../../.env -- node -r tsconfig-paths/register -r ts-node/register scripts/run-consolidation.ts",
+    "audit:data": "dotenv -e ../../.env -- tsx scripts/audit-data-counts.ts",
+    "diagnose:winrate": "dotenv -e ../../.env -- tsx scripts/diagnose-win-rate.ts",
+    "audit:resolution": "dotenv -e ../../.env -- tsx scripts/audit-resolution-details.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

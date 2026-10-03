@@ -7,10 +7,29 @@ import DashboardSidebar from "@/components/dashboard/dashboard-sidebar";
 import { BarChart2, TrendingUp, TrendingDown, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useWinRate, WinRateResponse } from "@/components/dashboard/useWinRate";
 
+interface LedgerEntry {
+  id: string;
+  userId: string;
+  inputSnapshot: {
+    symbol?: string;
+    assetType?: string;
+    reportHistoryId?: string;
+    [key: string]: unknown;
+  };
+  generatedOutput: Record<string, unknown>;
+  modelProvider: string;
+  modelName: string;
+  status: "pending" | "resolved";
+  outcome?: "correct" | "incorrect" | "partial";
+  actualData?: Record<string, unknown>;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 export default function AnalyticsPage() {
   const apiClient = useApiClient();
   const winRateData = useWinRate();
-  const [entries, setEntries] = useState<any[]>([]);
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,8 +38,12 @@ export default function AnalyticsPage() {
       setLoadingEntries(true);
       setError(null);
       try {
-        const data = await apiClient.get<any[]>("/ledger-entries");
-        setEntries(data);
+        const response = await apiClient.get<{ data: LedgerEntry[] }>("/ledger-entries");
+        const entriesData = response?.data;
+        if (!Array.isArray(entriesData)) {
+          throw new Error("Invalid response: expected an array of entries");
+        }
+        setEntries(entriesData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load ledger entries");
       } finally {

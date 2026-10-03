@@ -52,6 +52,17 @@ describe('PredictionLedgerController', () => {
     const result = await controller.findAll({ id: 'user-1' } as any);
     expect(ledgerService.findAllForUser).toHaveBeenCalledWith('user-1');
     expect(result).toEqual({ data: entries });
+    expect(result).toHaveProperty('data');
+    expect(Array.isArray(result.data)).toBe(true);
+  });
+
+  it('GET /ledger-entries returns empty array for no entries', async () => {
+    ledgerService.findAllForUser.mockResolvedValue([]);
+
+    const result = await controller.findAll({ id: 'user-1' } as any);
+    expect(result).toEqual({ data: [] });
+    expect(result.data).toEqual([]);
+    expect(Array.isArray(result.data)).toBe(true);
   });
 
   it('keeps GET /ledger-entries/win-rate', async () => {

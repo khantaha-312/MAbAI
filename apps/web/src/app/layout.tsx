@@ -39,9 +39,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             variables: {
               colorPrimary: "#4DA3FF",
               colorBackground: "#12161F",
-              colorTextSecondary: "#7C8497",
-              colorInputBackground: "#0A0D12",
-              colorInputText: "#F4F6FA",
               colorNeutral: "#232838",
               borderRadius: "0.5rem",
               fontFamily: "var(--font-inter)",
